@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "850133823216",
+    "project_id": "towbro-64a1a",
+    "storage_bucket": "towbro-64a1a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850133823216:android:14d8e4d1546ce754785c35",
+        "android_client_info": {
+          "package_name": "com.example.lab2_food_ordering_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9fpK6iafMfcpi8MlbqUgc4dX2bx7CvlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850133823216:android:166812ad691fd9a1785c35",
+        "android_client_info": {
+          "package_name": "com.example.towbro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9fpK6iafMfcpi8MlbqUgc4dX2bx7CvlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850133823216:android:cc9227d3af11de14785c35",
+        "android_client_info": {
+          "package_name": "com.example.towbruh"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9fpK6iafMfcpi8MlbqUgc4dX2bx7CvlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
