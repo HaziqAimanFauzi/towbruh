@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,6 +10,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late String _userRole;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -17,7 +19,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchUserRole() async {
-    // Fetch user role from Firestore
     String? userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -32,15 +33,21 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Home Page'),
-      ),
-      body: Center(
-        child: _userRole.isNotEmpty
-            ? Text('Welcome! You are logged in as $_userRole.')
-            : CircularProgressIndicator(),
-      ),
+    return NavBarScaffold(
+      initialIndex: _selectedIndex,
+      pages: [
+        Center(
+          child: _userRole.isNotEmpty
+              ? Text('Welcome! You are logged in as $_userRole.')
+              : CircularProgressIndicator(),
+        ),
+        Center(
+          child: Text('Profile Page'),
+        ),
+        Center(
+          child: Text('Settings Page'),
+        ),
+      ],
     );
   }
 }
