@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import '../bottom_nav_bar.dart';
+import '../nav_bar_scaffold.dart';
+import 'customer_profile.dart';
+import 'tow_profile.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,8 +11,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late String _userRole;
+  late String _userRole = '';
   int _selectedIndex = 0;
+  List<Widget> _pages = [];
 
   @override
   void initState() {
@@ -21,12 +24,14 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchUserRole() async {
     String? userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       setState(() {
         _userRole = userDoc['role'];
+        _pages = [
+          Center(child: Text('Welcome! You are logged in as $_userRole.')),
+          _userRole == 'customer' ? CustomerProfilePage() : TowDriverProfilePage(),
+          // SettingsPage(),
+        ];
       });
     }
   }
@@ -35,19 +40,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return NavBarScaffold(
       initialIndex: _selectedIndex,
-      pages: [
-        Center(
-          child: _userRole.isNotEmpty
-              ? Text('Welcome! You are logged in as $_userRole.')
-              : CircularProgressIndicator(),
-        ),
-        Center(
-          child: Text('Profile Page'),
-        ),
-        Center(
-          child: Text('Settings Page'),
-        ),
-      ],
+      pages: _pages.isEmpty ? [Center(child: CircularProgressIndicator())] : _pages,
     );
   }
 }

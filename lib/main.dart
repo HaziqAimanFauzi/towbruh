@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
+
 import 'auth/auth_page.dart';
-// import 'package:towbro/pages/auth_page.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
+  // Initialize Firebase before running the app
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-    print('Firebase initialized successfully');
-  } catch (e) {
-    print('Firebase initialization failed: $e');
-  }
+  await Firebase.initializeApp();
+
   runApp(MyApp());
 }
 
@@ -20,8 +15,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'My App',
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+      ),
       home: AuthPage(),
     );
   }
 }
-

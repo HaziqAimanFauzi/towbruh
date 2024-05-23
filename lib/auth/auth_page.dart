@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:towbruh/pages/role_selection.dart';
 import '../pages/login.dart';
 import '../pages/register.dart';
+import '../pages/role_selection.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
-
   @override
-  State<AuthPage> createState() => _AuthPageState();
+  _AuthPageState createState() => _AuthPageState();
 }
 
 class _AuthPageState extends State<AuthPage> {
   bool showLoginPage = true;
-  String selectedRole = '';
+  String? selectedRole;
 
   void toggleScreens() {
     setState(() {
@@ -20,23 +18,23 @@ class _AuthPageState extends State<AuthPage> {
     });
   }
 
-  void selectRole(String role) {
+  void onRoleSelected(String role) {
     setState(() {
       selectedRole = role;
-      showLoginPage = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (selectedRole.isEmpty) {
-      return RoleSelectionPage(
-        onRoleSelected: selectRole,
-      );
-    } else if (showLoginPage) {
-      return LoginPage(showRegisterPage: toggleScreens, selectedRole: selectedRole);
+    if (selectedRole == null) {
+      return RoleSelectionPage(onRoleSelected: onRoleSelected);
     } else {
-      return RegisterPage(showLoginPage: toggleScreens, selectedRole: selectedRole);
+      return showLoginPage
+          ? LoginPage(selectedRole: selectedRole!)
+          : RegisterPage(
+        selectedRole: selectedRole!,
+        showLoginPage: toggleScreens,
+      );
     }
   }
 }
