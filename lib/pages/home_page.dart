@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../nav_bar_scaffold.dart';
-import 'customer_profile.dart';
-import 'tow_profile.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -11,36 +8,46 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late String _userRole = '';
-  int _selectedIndex = 0;
-  List<Widget> _pages = [];
+  late GoogleMapController _controller;
+  Location _location = Location();
+  LatLng _initialcameraposition = LatLng(20.5937, 78.9629);
 
   @override
   void initState() {
     super.initState();
-    _fetchUserRole();
+    _location.onLocationChanged.listen((l) {
+      _controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: LatLng(l.latitude!, l.longitude!), zoom: 15),
+        ),
+      );
+    });
   }
 
-  Future<void> _fetchUserRole() async {
-    String? userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      setState(() {
-        _userRole = userDoc['role'];
-        _pages = [
-          Center(child: Text('Welcome! You are logged in as $_userRole.')),
-          _userRole == 'customer' ? CustomerProfilePage() : TowDriverProfilePage(),
-          // SettingsPage(),
-        ];
-      });
-    }
+  void _onMapCreated(GoogleMapController controller) {
+    _controller = controller;
+    _location.onLocationChanged.listen((l) {
+      _controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: LatLng(l.latitude!, l.longitude!), zoom: 15),
+        ),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return NavBarScaffold(
-      initialIndex: _selectedIndex,
-      pages: _pages.isEmpty ? [Center(child: CircularProgressIndicator())] : _pages,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Google Maps Live Location'),
+      ),
+      body: GoogleMap(
+        initialCameraPosition: CameraPosition(target: _initialcameraposition, zoom: 5),
+        mapType: MapType.normal,
+        onMapCreated: _onMapCreated,
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+      ),
     );
   }
 }
