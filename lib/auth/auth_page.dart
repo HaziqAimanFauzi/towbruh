@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../pages/login.dart';
-import '../pages/register.dart';
-import '../pages/role_selection.dart';
+import 'package:towbruh/pages/login.dart';
+import 'package:towbruh/pages/register.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -10,7 +9,6 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   bool showLoginPage = true;
-  String? selectedRole;
 
   void toggleScreens() {
     setState(() {
@@ -18,23 +16,12 @@ class _AuthPageState extends State<AuthPage> {
     });
   }
 
-  void onRoleSelected(String role) {
-    setState(() {
-      selectedRole = role;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (selectedRole == null) {
-      return RoleSelectionPage(onRoleSelected: onRoleSelected);
+    if (showLoginPage) {
+      return LoginPage(showRegisterPage: toggleScreens);
     } else {
-      return showLoginPage
-          ? LoginPage(selectedRole: selectedRole!)
-          : RegisterPage(
-        selectedRole: selectedRole!,
-        showLoginPage: toggleScreens,
-      );
+      return RegisterPage(showLoginPage: toggleScreens);
     }
   }
 }

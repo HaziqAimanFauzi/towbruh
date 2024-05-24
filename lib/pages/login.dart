@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:towbruh/pages/home_page.dart';
-import 'register.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatefulWidget {
-  final String selectedRole;
+  final VoidCallback showRegisterPage;
 
-  const LoginPage({Key? key, required this.selectedRole}) : super(key: key);
+  const LoginPage({Key? key, required this.showRegisterPage}) : super(key: key);
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -17,7 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  Future login() async {
+  Future signIn() async {
     setState(() {
       _isLoading = true;
     });
@@ -27,25 +26,13 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // Navigate to the main application after login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomePage(),
-        ),
-      );
     } catch (e) {
       print(e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Login failed! Please try again.'),
-        ),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -58,91 +45,122 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.login,
-                size: 100,
-              ),
-              SizedBox(height: 75),
-              Text(
-                'Welcome Back!',
-                style: TextStyle(fontSize: 52),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Login with your credentials',
-                style: TextStyle(fontSize: 20),
-              ),
-              SizedBox(height: 50),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                child: TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    hintText: 'Email',
+      backgroundColor: Colors.grey[300],
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.directions_car,
+                  size: 100,
+                ),
+                SizedBox(height: 75),
+                Text(
+                  'Hello Again!',
+                  style: GoogleFonts.bebasNeue(
+                    fontSize: 52,
                   ),
                 ),
-              ),
-              SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                child: TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: 'Password',
+                SizedBox(height: 10),
+                Text(
+                  'Welcome back, you\'ve been missed!',
+                  style: TextStyle(
+                    fontSize: 20,
                   ),
                 ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: login,
-                child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Login'),
-              ),
-              SizedBox(height: 25),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Don\'t have an account?',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                SizedBox(height: 50),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: 'Email',
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                    ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RegisterPage(
-                            selectedRole: widget.selectedRole,
-                            showLoginPage: () {
-                              setState(() {
-                                Navigator.pop(context);
-                              });
-                            },
+                ),
+                SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: 'Password',
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: GestureDetector(
+                    onTap: signIn,
+                    child: Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                          'Sign In',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
                         ),
-                      );
-                    },
-                    child: Text(
-                      ' Register now',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                SizedBox(height: 25),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Not a member?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: widget.showRegisterPage,
+                      child: Text(
+                        ' Register now',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

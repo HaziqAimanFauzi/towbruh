@@ -1,29 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:towbruh/auth/auth_page.dart';
 
-class TowDriverProfilePage extends StatefulWidget {
+class TowProfilePage extends StatefulWidget {
   @override
-  _TowDriverProfilePageState createState() => _TowDriverProfilePageState();
+  _TowProfilePageState createState() => _TowProfilePageState();
 }
 
-class _TowDriverProfilePageState extends State<TowDriverProfilePage> {
-  Map<String, dynamic>? _userData;
+class _TowProfilePageState extends State<TowProfilePage> {
+  late User _currentUser;
+  late Map<String, dynamic> _userData;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _currentUser = FirebaseAuth.instance.currentUser!;
+    _getUserData();
   }
 
-  Future<void> _fetchUserData() async {
-    String? userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      setState(() {
-        _userData = userDoc.data() as Map<String, dynamic>;
-      });
-    }
+  Future<void> _getUserData() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).get();
+    setState(() {
+      _userData = userDoc.data() as Map<String, dynamic>;
+    });
   }
 
   @override
@@ -39,16 +39,25 @@ class _TowDriverProfilePageState extends State<TowDriverProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Name: ${_userData!['name']}'),
-            Text('Email: ${_userData!['email']}'),
-            Text('Phone Number: ${_userData!['phone']}'),
-            Text('Tow Truck Number Plate: ${_userData!['tow_truck_number_plate']}'),
+            Text('Name: ${_userData['name']}', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Email: ${_userData['email']}', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Phone: ${_userData['phone']}', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Number Plate: ${_userData['number_plate']}', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 8),
+            // Profile picture can be added here
             SizedBox(height: 20),
-            Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: NetworkImage(_userData!['profile_picture'] ?? ''),
-              ),
+            ElevatedButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => AuthPage()),
+                );
+              },
+              child: Text('Logout'),
             ),
           ],
         ),

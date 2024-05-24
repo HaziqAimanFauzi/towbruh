@@ -2,22 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsPage extends StatelessWidget {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  Future<void> _changePassword(BuildContext context) async {
-    // Implement password change functionality
-    // You can prompt the user to enter their current and new passwords, then update it in Firebase Auth
-  }
-
-  Future<void> _updateProfile(BuildContext context) async {
-    // Implement profile update functionality
-    // This can include updating the user's display name, profile picture, etc.
-  }
-
-  Future<void> _signOut(BuildContext context) async {
-    await _auth.signOut();
-    Navigator.of(context).pushReplacementNamed('/login'); // Ensure you have a named route for login
-  }
+  const SettingsPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -28,22 +13,47 @@ class SettingsPage extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListTile(
-              leading: Icon(Icons.lock),
-              title: Text('Change Password'),
-              onTap: () => _changePassword(context),
+            Text(
+              'Settings',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-            ListTile(
-              leading: Icon(Icons.edit),
-              title: Text('Update Profile'),
-              onTap: () => _updateProfile(context),
+            SizedBox(height: 20),
+            TextButton(
+              onPressed: () {
+                // Add functionality to update profile information here
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white, padding: EdgeInsets.all(20),
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Update Profile Information',
+                style: TextStyle(fontSize: 18),
+              ),
             ),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Log Out'),
-              onTap: () => _signOut(context),
+            SizedBox(height: 20),
+            TextButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.of(context).pushReplacementNamed('/login');
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white, padding: EdgeInsets.all(20),
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Logout',
+                style: TextStyle(fontSize: 18),
+              ),
             ),
           ],
         ),
