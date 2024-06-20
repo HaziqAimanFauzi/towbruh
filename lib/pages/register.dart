@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'login.dart'; // Import your login page
 
 class RegisterPage extends StatefulWidget {
-  final VoidCallback showLoginPage;
-
-  const RegisterPage({Key? key, required this.showLoginPage}) : super(key: key);
+  const RegisterPage({Key? key}) : super(key: key);
 
   @override
   _RegisterPageState createState() => _RegisterPageState();
@@ -21,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String _selectedRole = 'customer'; // Default role
   bool _isLoading = false;
 
-  Future signUp() async {
+  Future<void> signUp(BuildContext context) async {
     setState(() {
       _isLoading = true;
     });
@@ -46,8 +45,34 @@ class _RegisterPageState extends State<RegisterPage> {
             'number_plate': 'ABC123', // Placeholder, should be from another input field
           });
         }
+
+        // Show registration complete dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Registration Complete'),
+              content: Text('You have successfully registered.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    // Navigate to login page
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+
       } catch (e) {
-        print(e);
+        print('Error registering user: $e');
+        // Handle error (e.g., show error message)
       }
     }
 
@@ -231,24 +256,24 @@ class _RegisterPageState extends State<RegisterPage> {
                 SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: GestureDetector(
-                    onTap: signUp,
-                    child: Container(
+                  child: ElevatedButton(
+                    onPressed: () => signUp(context),
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.deepPurple,
                       padding: EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple,
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Center(
-                        child: _isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                    ),
+                    child: Center(
+                      child: _isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                        'Sign Up',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
                     ),
@@ -265,7 +290,13 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: widget.showLoginPage,
+                      onTap: () {
+                        // Navigate to login page
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => LoginPage()),
+                        );
+                      },
                       child: Text(
                         ' Login now',
                         style: TextStyle(
