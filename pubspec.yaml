@@ -40,7 +40,7 @@ dependencies:
   google_fonts: ^6.2.1
   firebase_core: ^2.31.0
   firebase_storage: ^11.7.6
-  google_maps_flutter: ^2.6.1
+  google_maps_flutter: ^2.6.0
   location: ^4.3.0
 
 
