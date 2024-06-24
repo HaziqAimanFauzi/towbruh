@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:towbruh/pages/customer_profile.dart'; // Import your customer profile page
+import 'package:towbruh/pages/settings_page.dart';
 import 'package:towbruh/pages/tow_profile.dart'; // Import your tow profile page
-import 'package:towbruh/settings_page.dart'; // Import your settings page
 
 class HomePage extends StatefulWidget {
   final String userRole;

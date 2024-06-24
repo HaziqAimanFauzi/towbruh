@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:towbruh/home_page.dart'; // Import your home page
+import 'package:towbruh/pages/register.dart';
+import 'home_page.dart'; // Import your home page
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  final VoidCallback showRegisterPage;
+
+  const LoginPage({Key? key, required this.showRegisterPage}) : super(key: key);
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -31,7 +34,6 @@ class _LoginPageState extends State<LoginPage> {
         context,
         MaterialPageRoute(builder: (context) => HomePage(userRole: 'customer')),
       );
-
     } catch (e) {
       print('Error signing in: $e');
       // Handle error (e.g., show error message)
@@ -124,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: ElevatedButton(
                     onPressed: () => signIn(context),
                     style: ElevatedButton.styleFrom(
-                      primary: Colors.deepPurple,
+                      backgroundColor: Colors.deepPurple,
                       padding: EdgeInsets.all(20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -154,18 +156,21 @@ class _LoginPageState extends State<LoginPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
+                    SizedBox(width: 5),
+                    ElevatedButton(
+                      onPressed: () {
                         // Navigate to register page
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => RegisterPage()),
+                          MaterialPageRoute(
+                            builder: (context) => RegisterPage(showLoginPage: widget.showRegisterPage),
+                          ),
                         );
                       },
                       child: Text(
-                        ' Register now',
+                        'Register now',
                         style: TextStyle(
-                          color: Colors.blue,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'login.dart'; // Import your login page
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({Key? key}) : super(key: key);
+  final VoidCallback showLoginPage;
+
+  const RegisterPage({Key? key, required this.showLoginPage}) : super(key: key);
 
   @override
   _RegisterPageState createState() => _RegisterPageState();
@@ -60,7 +62,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     // Navigate to login page
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginPage()),
+                      MaterialPageRoute(
+                        builder: (context) => LoginPage(showRegisterPage: widget.showLoginPage),
+                      ),
                     );
                   },
                   child: Text('OK'),
@@ -69,7 +73,6 @@ class _RegisterPageState extends State<RegisterPage> {
             );
           },
         );
-
       } catch (e) {
         print('Error registering user: $e');
         // Handle error (e.g., show error message)
@@ -259,7 +262,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: ElevatedButton(
                     onPressed: () => signUp(context),
                     style: ElevatedButton.styleFrom(
-                      primary: Colors.deepPurple,
+                      backgroundColor: Colors.deepPurple,
                       padding: EdgeInsets.all(20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -289,18 +292,21 @@ class _RegisterPageState extends State<RegisterPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
+                    SizedBox(width: 5),
+                    ElevatedButton(
+                      onPressed: () {
                         // Navigate to login page
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => LoginPage()),
+                          MaterialPageRoute(
+                            builder: (context) => LoginPage(showRegisterPage: widget.showLoginPage),
+                          ),
                         );
                       },
                       child: Text(
-                        ' Login now',
+                        'Login now',
                         style: TextStyle(
-                          color: Colors.blue,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
