@@ -33,10 +33,10 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
         title: Text('Customer Profile'),
         actions: [
           IconButton(
+            icon: Icon(Icons.settings),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
-            icon: Icon(Icons.settings),
           ),
         ],
       ),

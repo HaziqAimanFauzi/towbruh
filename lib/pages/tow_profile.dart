@@ -33,10 +33,10 @@ class _TowProfilePageState extends State<TowProfilePage> {
         title: Text('Tow Profile'),
         actions: [
           IconButton(
+            icon: Icon(Icons.settings),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
-            icon: Icon(Icons.settings),
           ),
         ],
       ),
