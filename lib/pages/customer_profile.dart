@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../auth/auth_page.dart';
 
 class CustomerProfilePage extends StatefulWidget {
@@ -32,6 +31,14 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Customer Profile'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+            icon: Icon(Icons.settings),
+          ),
+        ],
       ),
       body: _userData == null
           ? Center(child: CircularProgressIndicator())
@@ -47,17 +54,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
             Text('Phone: ${_userData['phone']}', style: TextStyle(fontSize: 18)),
             SizedBox(height: 8),
             // Profile picture can be added here
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => AuthPage()),
-                );
-              },
-              child: Text('Logout'),
-            ),
           ],
         ),
       ),

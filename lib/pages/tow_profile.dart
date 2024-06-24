@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:towbruh/auth/auth_page.dart';
+import '../auth/auth_page.dart';
 
 class TowProfilePage extends StatefulWidget {
   @override
@@ -30,7 +30,15 @@ class _TowProfilePageState extends State<TowProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tow Driver Profile'),
+        title: Text('Tow Profile'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+            icon: Icon(Icons.settings),
+          ),
+        ],
       ),
       body: _userData == null
           ? Center(child: CircularProgressIndicator())
@@ -48,17 +56,6 @@ class _TowProfilePageState extends State<TowProfilePage> {
             Text('Number Plate: ${_userData['number_plate']}', style: TextStyle(fontSize: 18)),
             SizedBox(height: 8),
             // Profile picture can be added here
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => AuthPage()),
-                );
-              },
-              child: Text('Logout'),
-            ),
           ],
         ),
       ),

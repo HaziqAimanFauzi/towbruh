@@ -21,10 +21,12 @@ class _RegisterPageState extends State<RegisterPage> {
   final _phoneController = TextEditingController();
   String _selectedRole = 'customer'; // Default role
   bool _isLoading = false;
+  String? _errorMessage;
 
   Future<void> signUp(BuildContext context) async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     if (passwordConfirmed()) {
@@ -60,12 +62,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   onPressed: () {
                     Navigator.pop(context); // Close dialog
                     // Navigate to login page
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => LoginPage(showRegisterPage: widget.showLoginPage),
-                      ),
-                    );
+                    widget.showLoginPage();
                   },
                   child: Text('OK'),
                 ),
@@ -73,10 +70,25 @@ class _RegisterPageState extends State<RegisterPage> {
             );
           },
         );
+      } on FirebaseAuthException catch (e) {
+        print('Error registering user: $e');
+        setState(() {
+          if (e.code == 'email-already-in-use') {
+            _errorMessage = 'The email address is already in use by another account.';
+          } else {
+            _errorMessage = e.message;
+          }
+        });
       } catch (e) {
         print('Error registering user: $e');
-        // Handle error (e.g., show error message)
+        setState(() {
+          _errorMessage = 'An error occurred. Please try again later.';
+        });
       }
+    } else {
+      setState(() {
+        _errorMessage = "Passwords do not match";
+      });
     }
 
     setState(() {
@@ -127,6 +139,13 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
                 SizedBox(height: 50),
+                if (_errorMessage != null) ...[
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  SizedBox(height: 10),
+                ],
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
@@ -293,20 +312,12 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
                     SizedBox(width: 5),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to login page
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LoginPage(showRegisterPage: widget.showLoginPage),
-                          ),
-                        );
-                      },
+                    GestureDetector(
+                      onTap: widget.showLoginPage,
                       child: Text(
                         'Login now',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Colors.blue,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

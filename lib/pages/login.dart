@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:towbruh/pages/register.dart';
 import 'home_page.dart'; // Import your home page
 
 class LoginPage extends StatefulWidget {
@@ -157,20 +156,12 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     SizedBox(width: 5),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to register page
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RegisterPage(showLoginPage: widget.showRegisterPage),
-                          ),
-                        );
-                      },
+                    GestureDetector(
+                      onTap: widget.showRegisterPage,
                       child: Text(
                         'Register now',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Colors.blue,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

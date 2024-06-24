@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:towbruh/pages/customer_profile.dart'; // Import your customer profile page
-import 'package:towbruh/pages/settings_page.dart';
+import 'package:towbruh/pages/message_page.dart'; // Import your message page
 import 'package:towbruh/pages/tow_profile.dart'; // Import your tow profile page
 
 class HomePage extends StatefulWidget {
@@ -17,14 +17,14 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'), // Replace with your home page content
+    MessagePage(), // Replace with your message page
     CustomerProfilePage(), // Replace with your customer profile page
-    const SettingsPage(),
   ];
 
   final List<Widget> _widgetOptionsTow = [
     const Text('Home Page Content'), // Replace with your home page content
+    MessagePage(), // Replace with your message page
     TowProfilePage(), // Replace with your tow profile page
-    const SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -48,17 +48,21 @@ class _HomePageState extends State<HomePage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.message),
+            label: 'Message',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.amber[800],
         onTap: _onItemTapped,
+        selectedFontSize: 14.0,
+        unselectedFontSize: 12.0,
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
       ),
     );
   }
