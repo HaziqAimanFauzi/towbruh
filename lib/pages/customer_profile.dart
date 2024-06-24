@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../auth/auth_page.dart';
 
 class CustomerProfilePage extends StatefulWidget {
   @override
@@ -10,7 +9,7 @@ class CustomerProfilePage extends StatefulWidget {
 
 class _CustomerProfilePageState extends State<CustomerProfilePage> {
   late User _currentUser;
-  late Map<String, dynamic> _userData;
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -22,7 +21,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   Future<void> _getUserData() async {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).get();
     setState(() {
-      _userData = userDoc.data() as Map<String, dynamic>;
+      _userData = userDoc.data() as Map<String, dynamic>?;
     });
   }
 
@@ -47,11 +46,11 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Name: ${_userData['name']}', style: TextStyle(fontSize: 18)),
+            Text('Name: ${_userData!['name']}', style: TextStyle(fontSize: 18)),
             SizedBox(height: 8),
-            Text('Email: ${_userData['email']}', style: TextStyle(fontSize: 18)),
+            Text('Email: ${_userData!['email']}', style: TextStyle(fontSize: 18)),
             SizedBox(height: 8),
-            Text('Phone: ${_userData['phone']}', style: TextStyle(fontSize: 18)),
+            Text('Phone: ${_userData!['phone']}', style: TextStyle(fontSize: 18)),
             SizedBox(height: 8),
             // Profile picture can be added here
           ],

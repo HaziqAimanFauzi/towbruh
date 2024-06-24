@@ -1,8 +1,11 @@
+// main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:towbruh/pages/home_page.dart';
 import 'package:towbruh/pages/login.dart';
 import 'package:towbruh/pages/register.dart';
+import 'package:towbruh/pages/settings_page.dart';
+import 'package:towbruh/pages/update_profile.dart'; // Import the update profile page
 import 'auth/auth_page.dart';
 
 void main() async {
@@ -22,13 +25,15 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => AuthPage(),
-        '/home': (context) => HomePage(userRole: 'customer'), // Replace 'customer' with the dynamic user role
+        '/home': (context) => HomePage(userRole: 'customer'),
         '/login': (context) => LoginPage(showRegisterPage: () {
           Navigator.pushNamed(context, '/register');
         }),
         '/register': (context) => RegisterPage(showLoginPage: () {
           Navigator.pushNamed(context, '/login');
         }),
+        '/settings': (context) => const SettingsPage(),
+        '/update_profile': (context) => UpdateProfilePage(), // Register the update profile route
       },
     );
   }

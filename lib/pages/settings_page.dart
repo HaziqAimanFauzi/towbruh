@@ -1,5 +1,7 @@
+// settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'update_profile.dart'; // Import the update_profile page
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -23,10 +25,14 @@ class SettingsPage extends StatelessWidget {
             SizedBox(height: 20),
             TextButton(
               onPressed: () {
-                // Add functionality to update profile information here
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => UpdateProfilePage()),
+                );
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.white, padding: EdgeInsets.all(20),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.all(20),
                 backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -44,7 +50,8 @@ class SettingsPage extends StatelessWidget {
                 Navigator.of(context).pushReplacementNamed('/login');
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.white, padding: EdgeInsets.all(20),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.all(20),
                 backgroundColor: Colors.red,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
