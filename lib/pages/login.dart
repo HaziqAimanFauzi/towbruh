@@ -16,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  String _errorMessage = '';
 
   Future<void> signIn(BuildContext context) async {
     setState(() {
@@ -33,9 +34,11 @@ class _LoginPageState extends State<LoginPage> {
         context,
         MaterialPageRoute(builder: (context) => HomePage(userRole: 'customer')),
       );
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       print('Error signing in: $e');
-      // Handle error (e.g., show error message)
+      setState(() {
+        _errorMessage = 'Incorrect email or password. Please try again.';
+      });
     }
 
     setState(() {
@@ -119,6 +122,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+                if (_errorMessage.isNotEmpty) // Show error message if it's not empty
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                    child: Text(
+                      _errorMessage,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
                 SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
