@@ -5,6 +5,7 @@ import 'package:towbruh/pages/login.dart';
 import 'package:towbruh/pages/register.dart';
 import 'package:towbruh/pages/settings_page.dart';
 import 'package:towbruh/pages/update_profile.dart'; // Import the update profile page
+import 'nav_bar_scaffold.dart';
 import 'auth/auth_page.dart';
 
 void main() async {
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => AuthPage(),
-        '/home': (context) => HomePage(userRole: 'customer'),
+        '/home': (context) => NavBarScaffold(userRole: 'customer'), // Ensure userRole is passed correctly
         '/login': (context) => LoginPage(showRegisterPage: () {
           Navigator.pushNamed(context, '/register');
         }),

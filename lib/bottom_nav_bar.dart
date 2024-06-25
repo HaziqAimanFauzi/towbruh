@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-class BottomNavBar extends StatefulWidget {
+class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
-  final ValueChanged<int> onItemTapped;
+  final Function(int) onItemTapped;
 
   const BottomNavBar({
     Key? key,
@@ -10,11 +10,6 @@ class BottomNavBar extends StatefulWidget {
     required this.onItemTapped,
   }) : super(key: key);
 
-  @override
-  _BottomNavBarState createState() => _BottomNavBarState();
-}
-
-class _BottomNavBarState extends State<BottomNavBar> {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
@@ -24,17 +19,21 @@ class _BottomNavBarState extends State<BottomNavBar> {
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.message),
-          label: 'Message',
+          icon: Icon(Icons.person),
+          label: 'Profile',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.settings),
-          label: 'Profile',
+          label: 'Settings',
         ),
       ],
-      currentIndex: widget.selectedIndex,
-      selectedItemColor: Colors.deepPurple,
-      onTap: widget.onItemTapped,
+      currentIndex: selectedIndex,
+      selectedItemColor: Colors.amber[800],
+      onTap: onItemTapped,
+      selectedFontSize: 14.0,
+      unselectedFontSize: 12.0,
+      selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
     );
   }
 }
