@@ -33,7 +33,7 @@
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCI0DDAHkX4gRZJ_o9lGT2ikP9JkvIoK3Q"/>
+            android:value="AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ"/>
 
         <meta-data
             android:name="flutterEmbedding"
