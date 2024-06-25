@@ -16,6 +16,8 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _numberPlateController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController(); // Add password controller for re-authentication
   String? _profileImageUrl;
   File? _profileImage;
 
@@ -32,6 +34,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     _nameController.text = userData['name'];
     _phoneController.text = userData['phone'];
     _numberPlateController.text = userData['number_plate'];
+    _emailController.text = userData['email']; // Set initial email
     setState(() {
       _profileImageUrl = userData['profile_image'];
     });
@@ -39,27 +42,49 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
 
   Future<void> _updateProfile() async {
     if (_formKey.currentState!.validate()) {
-      await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
-        'name': _nameController.text,
-        'phone': _phoneController.text,
-        'number_plate': _numberPlateController.text,
-      });
+      try {
+        // Reauthenticate user
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: _currentUser.email!,
+          password: _passwordController.text,
+        );
+        await _currentUser.reauthenticateWithCredential(credential);
 
-      if (_profileImage != null) {
-        String fileName = '${_currentUser.uid}.png';
-        await FirebaseStorage.instance.ref('profile_images/$fileName').putFile(_profileImage!);
-        String downloadURL = await FirebaseStorage.instance.ref('profile_images/$fileName').getDownloadURL();
+        // Update email
+        await _currentUser.updateEmail(_emailController.text);
+        await FirebaseAuth.instance.currentUser!.sendEmailVerification();
 
+        // Update Firestore document
         await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
-          'profile_image': downloadURL,
+          'name': _nameController.text,
+          'phone': _phoneController.text,
+          'number_plate': _numberPlateController.text,
+          'email': _emailController.text,
         });
 
-        setState(() {
-          _profileImageUrl = downloadURL;
-        });
+        if (_profileImage != null) {
+          String fileName = '${_currentUser.uid}.png';
+          await FirebaseStorage.instance.ref('profile_images/$fileName').putFile(_profileImage!);
+          String downloadURL = await FirebaseStorage.instance.ref('profile_images/$fileName').getDownloadURL();
+
+          await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
+            'profile_image': downloadURL,
+          });
+
+          setState(() {
+            _profileImageUrl = downloadURL;
+          });
+        }
+
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile updated successfully. Please verify your new email.')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating profile: $e')),
+        );
       }
-
-      Navigator.pop(context);
     }
   }
 
@@ -82,60 +107,83 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_profileImageUrl != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: CircleAvatar(
-                    radius: 80,
-                    backgroundImage: NetworkImage(_profileImageUrl!),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_profileImageUrl != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: CircleAvatar(
+                      radius: 80,
+                      backgroundImage: NetworkImage(_profileImageUrl!),
+                    ),
                   ),
+                ElevatedButton(
+                  onPressed: () => _pickProfileImage(ImageSource.camera),
+                  child: Text('Take Photo'),
                 ),
-              ElevatedButton(
-                onPressed: () => _pickProfileImage(ImageSource.camera),
-                child: Text('Take Photo'),
-              ),
-              ElevatedButton(
-                onPressed: () => _pickProfileImage(ImageSource.gallery),
-                child: Text('Choose from Gallery'),
-              ),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(labelText: 'Phone'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _numberPlateController,
-                decoration: InputDecoration(labelText: 'Number Plate'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your vehicle number plate';
-                  }
-                  return null;
-                },
-              ),
-              ElevatedButton(
-                onPressed: _updateProfile,
-                child: Text('Update Profile'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: () => _pickProfileImage(ImageSource.gallery),
+                  child: Text('Choose from Gallery'),
+                ),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(labelText: 'Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: InputDecoration(labelText: 'Phone'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _numberPlateController,
+                  decoration: InputDecoration(labelText: 'Number Plate'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your vehicle number plate';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password for re-authentication';
+                    }
+                    return null;
+                  },
+                ),
+                ElevatedButton(
+                  onPressed: _updateProfile,
+                  child: Text('Update Profile'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

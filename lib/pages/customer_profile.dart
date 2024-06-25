@@ -59,7 +59,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Customer Profile'),
+        title: Text('Profile'),
         actions: [
           IconButton(
             icon: Icon(Icons.settings),

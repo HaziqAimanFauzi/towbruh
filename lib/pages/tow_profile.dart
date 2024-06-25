@@ -59,7 +59,7 @@ class _TowProfilePageState extends State<TowProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tow Profile'),
+        title: Text('Profile'),
         actions: [
           IconButton(
             icon: Icon(Icons.settings),
@@ -94,7 +94,7 @@ class _TowProfilePageState extends State<TowProfilePage> {
             SizedBox(height: 8),
             Text('Phone: ${_userData['phone']}', style: TextStyle(fontSize: 18)),
             SizedBox(height: 8),
-            Text('Number Plate: ${_userData['number_plate']}', style: TextStyle(fontSize: 18)),
+            Text('Number Plate: ${_userData['number_plate']}', style: TextStyle(fontSize: 18)), // Display number plate
             SizedBox(height: 8),
           ],
         ),
