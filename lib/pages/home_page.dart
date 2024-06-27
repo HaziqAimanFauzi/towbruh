@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:towbruh/pages/message_page.dart';
+import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart'; // Updated import for ProfilePage
 
 class HomePage extends StatefulWidget {
