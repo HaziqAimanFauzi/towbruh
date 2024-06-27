@@ -21,6 +21,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _phoneController = TextEditingController();
   String _selectedRole = 'customer'; // Default role
   bool _isLoading = false;
+  bool _obscureTextPassword = true;
+  bool _obscureTextConfirmPassword = true;
   String? _errorMessage;
 
   Future<void> signUp(BuildContext context) async {
@@ -210,7 +212,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscureTextPassword,
                     decoration: InputDecoration(
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white),
@@ -223,6 +225,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       hintText: 'Password',
                       fillColor: Colors.grey[200],
                       filled: true,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureTextPassword ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureTextPassword = !_obscureTextPassword;
+                          });
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -231,7 +243,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: TextField(
                     controller: _confirmPasswordController,
-                    obscureText: true,
+                    obscureText: _obscureTextConfirmPassword,
                     decoration: InputDecoration(
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.white),
@@ -244,6 +256,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       hintText: 'Confirm Password',
                       fillColor: Colors.grey[200],
                       filled: true,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureTextConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureTextConfirmPassword = !_obscureTextConfirmPassword;
+                          });
+                        },
+                      ),
                     ),
                   ),
                 ),
