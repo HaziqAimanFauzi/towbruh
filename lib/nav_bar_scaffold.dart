@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:towbruh/pages/customer_profile.dart';
 import 'package:towbruh/pages/home_page.dart';
 import 'package:towbruh/pages/message_page.dart';
 import 'package:towbruh/pages/settings_page.dart';
-import 'package:towbruh/pages/tow_profile.dart';
+import 'package:towbruh/pages/profile_page.dart'; // Updated import for ProfilePage
 
 class NavBarScaffold extends StatefulWidget {
   final String userRole;
@@ -21,7 +20,7 @@ class _NavBarScaffoldState extends State<NavBarScaffold> {
     return [
       HomePage(userRole: userRole),
       MessagePage(),
-      if (userRole == 'customer') CustomerProfilePage() else TowProfilePage(),
+      ProfilePage(), // Using ProfilePage instead of CustomerProfilePage or TowProfilePage
       SettingsPage(),
     ];
   }

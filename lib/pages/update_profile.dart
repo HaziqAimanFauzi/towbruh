@@ -17,10 +17,12 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _numberPlateController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController(); // Add password controller for re-authentication
+  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
   String? _profileImageUrl;
   File? _profileImage;
   String? _role;
+  bool _isLoading = false; // Add isLoading state variable
 
   @override
   void initState() {
@@ -44,17 +46,22 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
 
   Future<void> _updateProfile() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        // Reauthenticate user
-        AuthCredential credential = EmailAuthProvider.credential(
-          email: _currentUser.email!,
-          password: _passwordController.text,
-        );
-        await _currentUser.reauthenticateWithCredential(credential);
+      setState(() {
+        _isLoading = true; // Set loading state to true when updating profile
+      });
 
-        // Update email
-        await _currentUser.updateEmail(_emailController.text);
-        await FirebaseAuth.instance.currentUser!.sendEmailVerification();
+      try {
+        // Update email if changed
+        if (_emailController.text != _currentUser.email) {
+          AuthCredential credential = EmailAuthProvider.credential(
+            email: _currentUser.email!,
+            password: _currentPasswordController.text,
+          );
+          await _currentUser.reauthenticateWithCredential(credential);
+
+          await _currentUser.updateEmail(_emailController.text);
+          await FirebaseAuth.instance.currentUser!.sendEmailVerification();
+        }
 
         // Update Firestore document
         Map<String, dynamic> updateData = {
@@ -71,23 +78,50 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
 
         if (_profileImage != null) {
           String fileName = '${_currentUser.uid}.png';
-          await FirebaseStorage.instance.ref('profile_images/$fileName').putFile(_profileImage!);
-          String downloadURL = await FirebaseStorage.instance.ref('profile_images/$fileName').getDownloadURL();
+          Reference storageRef = FirebaseStorage.instance.ref().child('profile_images/$fileName');
+          UploadTask uploadTask = storageRef.putFile(_profileImage!);
 
-          await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
-            'profile_image': downloadURL,
+          uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+            print('Progress: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100} %');
+          }, onError: (e) {
+            print(uploadTask.snapshot);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error uploading profile image: $e')),
+            );
           });
 
-          setState(() {
-            _profileImageUrl = downloadURL;
+          await uploadTask.whenComplete(() async {
+            try {
+              String downloadURL = await storageRef.getDownloadURL();
+
+              await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
+                'profile_image': downloadURL,
+              });
+
+              setState(() {
+                _profileImageUrl = downloadURL;
+              });
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error getting download URL: $e')),
+              );
+            }
           });
         }
+
+        setState(() {
+          _isLoading = false; // Set loading state to false after update completes
+        });
 
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Profile updated successfully. Please verify your new email.')),
         );
       } catch (e) {
+        setState(() {
+          _isLoading = false; // Set loading state to false if there's an error
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error updating profile: $e')),
         );
@@ -95,13 +129,98 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     }
   }
 
-  Future<void> _pickProfileImage(ImageSource source) async {
-    final pickedFile = await ImagePicker().pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
+  Future<void> _changePassword() async {
+    if (_newPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter new password')),
+      );
+      return;
     }
+
+    try {
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: _currentUser.email!,
+        password: _currentPasswordController.text,
+      );
+      await _currentUser.reauthenticateWithCredential(credential);
+
+      await _currentUser.updatePassword(_newPasswordController.text);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password changed successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to change password. ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _pickProfileImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(Icons.camera_alt),
+            title: Text('Take Photo'),
+            onTap: () async {
+              Navigator.pop(context);
+              final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+              if (pickedFile != null) {
+                setState(() {
+                  _profileImage = File(pickedFile.path);
+                });
+              }
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.photo_library),
+            title: Text('Choose from Gallery'),
+            onTap: () async {
+              Navigator.pop(context);
+              final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+              if (pickedFile != null) {
+                setState(() {
+                  _profileImage = File(pickedFile.path);
+                });
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileImage() {
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: 80,
+          backgroundImage: _profileImage != null
+              ? FileImage(_profileImage!)
+              : _profileImageUrl != null
+              ? NetworkImage(_profileImageUrl!) as ImageProvider<Object>
+              : AssetImage('assets/default_profile.png') as ImageProvider<Object>,
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: GestureDetector(
+            onTap: _pickProfileImage,
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.camera_alt, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -118,25 +237,16 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_profileImageUrl != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: CircleAvatar(
-                      radius: 80,
-                      backgroundImage: NetworkImage(_profileImageUrl!),
-                    ),
-                  ),
-                ElevatedButton(
-                  onPressed: () => _pickProfileImage(ImageSource.camera),
-                  child: Text('Take Photo'),
+                Center(
+                  child: _buildProfileImage(),
                 ),
-                ElevatedButton(
-                  onPressed: () => _pickProfileImage(ImageSource.gallery),
-                  child: Text('Choose from Gallery'),
-                ),
+                SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your name';
@@ -144,9 +254,13 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                     return null;
                   },
                 ),
+                SizedBox(height: 16),
                 TextFormField(
                   controller: _phoneController,
-                  decoration: InputDecoration(labelText: 'Phone'),
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
@@ -154,10 +268,14 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                     return null;
                   },
                 ),
+                SizedBox(height: 16),
                 if (_role == 'tow')
                   TextFormField(
                     controller: _numberPlateController,
-                    decoration: InputDecoration(labelText: 'Number Plate'),
+                    decoration: InputDecoration(
+                      labelText: 'Number Plate',
+                      border: OutlineInputBorder(),
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your vehicle number plate';
@@ -165,9 +283,13 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                       return null;
                     },
                   ),
+                if (_role == 'tow') SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
-                  decoration: InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
@@ -175,20 +297,47 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                     return null;
                   },
                 ),
+                SizedBox(height: 16),
                 TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(labelText: 'Password'),
-                  obscureText: true,
+                  controller: _currentPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password (Required to change password)',
+                    border: OutlineInputBorder(),
+                  ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password for re-authentication';
+                    if (_newPasswordController.text.isNotEmpty && (value == null || value.isEmpty)) {
+                      return 'Please enter your current password';
                     }
                     return null;
                   },
+                  obscureText: true,
                 ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _newPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (_currentPasswordController.text.isNotEmpty && (value == null || value.isEmpty)) {
+                      return 'Please enter your new password';
+                    }
+                    return null;
+                  },
+                  obscureText: true,
+                ),
+                SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: _updateProfile,
-                  child: Text('Update Profile'),
+                  onPressed: () {
+                    _updateProfile();
+                    if (_newPasswordController.text.isNotEmpty) {
+                      _changePassword();
+                    }
+                  },
+                  child: _isLoading
+                      ? CircularProgressIndicator() // Show loading indicator if updating
+                      : Text('Update Profile'),
                 ),
               ],
             ),

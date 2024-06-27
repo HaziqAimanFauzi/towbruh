@@ -6,9 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:towbruh/pages/customer_profile.dart';
-import 'package:towbruh/pages/tow_profile.dart';
 import 'package:towbruh/pages/message_page.dart';
+import 'package:towbruh/pages/profile_page.dart'; // Updated import for ProfilePage
 
 class HomePage extends StatefulWidget {
   final String userRole;
@@ -35,13 +34,13 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
     MessagePage(),
-    CustomerProfilePage(),
+    ProfilePage(),
   ];
 
   final List<Widget> _widgetOptionsTow = [
     const Text('Home Page Content'),
     MessagePage(),
-    TowProfilePage(),
+    ProfilePage(),
   ];
 
   @override
@@ -70,7 +69,8 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _getCurrentLocation() async {
     Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+      desiredAccuracy: LocationAccuracy.high,
+    );
     setState(() {
       _currentPosition = LatLng(position.latitude, position.longitude);
       _initialPosition = _currentPosition;
@@ -81,14 +81,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchNearbyRequests() async {
-    FirebaseFirestore.instance
-        .collection('requests')
-        .snapshots()
-        .listen((snapshot) {
-      setState(() {
-        _nearbyRequests = snapshot.docs;
-      });
-    });
+    FirebaseFirestore.instance.collection('requests').snapshots().listen(
+          (snapshot) {
+        setState(() {
+          _nearbyRequests = snapshot.docs;
+        });
+      },
+    );
   }
 
   Future<void> _createPolylines(LatLng start, LatLng destination) async {
@@ -100,25 +99,31 @@ class _HomePageState extends State<HomePage> {
 
     if (result.points.isNotEmpty) {
       setState(() {
-        _polylines.add(Polyline(
-          polylineId: const PolylineId('polyline'),
-          color: Colors.blue,
-          width: 5,
-          points: result.points
-              .map((point) => LatLng(point.latitude, point.longitude))
-              .toList(),
-        ));
+        _polylines.add(
+          Polyline(
+            polylineId: const PolylineId('polyline'),
+            color: Colors.blue,
+            width: 5,
+            points: result.points
+                .map(
+                  (point) => LatLng(point.latitude, point.longitude),
+            )
+                .toList(),
+          ),
+        );
       });
     }
   }
 
   void _addCustomerMarker() {
     setState(() {
-      _markers.add(Marker(
-        markerId: const MarkerId('customerMarker'),
-        position: _currentPosition,
-        infoWindow: const InfoWindow(title: 'Your Location'),
-      ));
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('customerMarker'),
+          position: _currentPosition,
+          infoWindow: const InfoWindow(title: 'Your Location'),
+        ),
+      );
     });
   }
 
@@ -133,11 +138,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _requestDriver() async {
-    await FirebaseFirestore.instance.collection('requests').add({
-      'customer_id': FirebaseAuth.instance.currentUser!.uid,
-      'location': GeoPoint(_currentPosition.latitude, _currentPosition.longitude),
-      'status': 'pending',
-    });
+    await FirebaseFirestore.instance.collection('requests').add(
+      {
+        'customer_id': FirebaseAuth.instance.currentUser!.uid,
+        'location': GeoPoint(
+          _currentPosition.latitude,
+          _currentPosition.longitude,
+        ),
+        'status': 'pending',
+      },
+    );
     _showRequestBottomSheet();
   }
 
@@ -210,8 +220,18 @@ class _HomePageState extends State<HomePage> {
                       await FirebaseFirestore.instance
                           .collection('requests')
                           .doc(request.id)
-                          .update({'status': 'accepted', 'driver_id': FirebaseAuth.instance.currentUser!.uid});
-                      _createPolylines(_currentPosition, LatLng(request['location'].latitude, request['location'].longitude));
+                          .update({
+                        'status': 'accepted',
+                        'driver_id':
+                        FirebaseAuth.instance.currentUser!.uid,
+                      });
+                      _createPolylines(
+                        _currentPosition,
+                        LatLng(
+                          request['location'].latitude,
+                          request['location'].longitude,
+                        ),
+                      );
                     },
                     child: Container(
                       padding: const EdgeInsets.all(8.0),

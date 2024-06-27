@@ -23,36 +23,65 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _getUserData() async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).get();
+    DocumentSnapshot userDoc =
+    await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).get();
     setState(() {
       _userData = userDoc.data() as Map<String, dynamic>?;
       _profileImageUrl = _userData!['profile_image'];
     });
   }
 
-  Future<void> _uploadProfileImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  Widget _buildProfileImage() {
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 3,
+            blurRadius: 5,
+            offset: Offset(0, 3), // changes position of shadow
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: _profileImageUrl != null
+            ? Image.network(
+          _profileImageUrl!,
+          fit: BoxFit.cover,
+        )
+            : Image.asset(
+          'assets/default_profile.png',
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
 
-    if (pickedFile != null) {
-      File file = File(pickedFile.path);
-      String fileName = '${_currentUser.uid}.png';
-
-      try {
-        await FirebaseStorage.instance.ref('profile_images/$fileName').putFile(file);
-        String downloadURL = await FirebaseStorage.instance.ref('profile_images/$fileName').getDownloadURL();
-
-        await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
-          'profile_image': downloadURL,
-        });
-
-        setState(() {
-          _profileImageUrl = downloadURL;
-        });
-      } catch (e) {
-        print('Error uploading profile image: $e');
-      }
-    }
+  Widget _buildUserDataInfo(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 16),
+      ],
+    );
   }
 
   @override
@@ -71,31 +100,44 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: _userData == null
           ? Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
+          : SingleChildScrollView(
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: GestureDetector(
-                onTap: _uploadProfileImage,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundImage: _profileImageUrl != null
-                      ? NetworkImage(_profileImageUrl!)
-                      : AssetImage('assets/default_profile.png') as ImageProvider,
-                ),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _buildProfileImage(),
               ),
             ),
-            SizedBox(height: 16),
-            Text('Name: ${_userData!['name']}', style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text('Email: ${_userData!['email']}', style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            Text('Phone: ${_userData!['phone']}', style: TextStyle(fontSize: 18)),
-            SizedBox(height: 8),
-            if (_userData!['role'] == 'tow')
-              Text('Number Plate: ${_userData!['number_plate']}', style: TextStyle(fontSize: 18)),
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.3),
+                    spreadRadius: 3,
+                    blurRadius: 5,
+                    offset: Offset(0, 3), // changes position of shadow
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildUserDataInfo('Name', _userData!['name']),
+                  _buildUserDataInfo('Email', _userData!['email']),
+                  _buildUserDataInfo('Phone', _userData!['phone']),
+                  if (_userData!['role'] == 'tow') ...[
+                    Divider(),
+                    _buildUserDataInfo('Number Plate', _userData!['number_plate']),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
