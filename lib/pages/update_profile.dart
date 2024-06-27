@@ -20,6 +20,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   final TextEditingController _passwordController = TextEditingController(); // Add password controller for re-authentication
   String? _profileImageUrl;
   File? _profileImage;
+  String? _role;
 
   @override
   void initState() {
@@ -33,8 +34,9 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     final userData = userDoc.data() as Map<String, dynamic>;
     _nameController.text = userData['name'];
     _phoneController.text = userData['phone'];
-    _numberPlateController.text = userData['number_plate'];
+    _numberPlateController.text = userData['number_plate'] ?? '';
     _emailController.text = userData['email']; // Set initial email
+    _role = userData['role'];
     setState(() {
       _profileImageUrl = userData['profile_image'];
     });
@@ -55,12 +57,17 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
         await FirebaseAuth.instance.currentUser!.sendEmailVerification();
 
         // Update Firestore document
-        await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update({
+        Map<String, dynamic> updateData = {
           'name': _nameController.text,
           'phone': _phoneController.text,
-          'number_plate': _numberPlateController.text,
           'email': _emailController.text,
-        });
+        };
+
+        if (_role == 'tow') {
+          updateData['number_plate'] = _numberPlateController.text;
+        }
+
+        await FirebaseFirestore.instance.collection('users').doc(_currentUser.uid).update(updateData);
 
         if (_profileImage != null) {
           String fileName = '${_currentUser.uid}.png';
@@ -147,16 +154,17 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                     return null;
                   },
                 ),
-                TextFormField(
-                  controller: _numberPlateController,
-                  decoration: InputDecoration(labelText: 'Number Plate'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your vehicle number plate';
-                    }
-                    return null;
-                  },
-                ),
+                if (_role == 'tow')
+                  TextFormField(
+                    controller: _numberPlateController,
+                    decoration: InputDecoration(labelText: 'Number Plate'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your vehicle number plate';
+                      }
+                      return null;
+                    },
+                  ),
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(labelText: 'Email'),
