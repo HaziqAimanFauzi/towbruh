@@ -26,6 +26,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Set<Marker> _markers = {};
   late PolylinePoints _polylinePoints;
   final String googleApiKey = 'YOUR_API_KEY';
+  String? _driverId;
+  StreamSubscription<DocumentSnapshot>? _driverLocationSubscription;
+  String? _userRole;
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
@@ -38,6 +41,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     super.initState();
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
+    _fetchUserRole(); // Fetch user role when initializing the widget
+  }
+
+  @override
+  void dispose() {
+    _driverLocationSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkLocationPermission() async {
@@ -52,6 +62,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     } else {
       print("Location permission denied");
     }
+  }
+
+  Future<void> _fetchUserRole() async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).get();
+    setState(() {
+      _userRole = userDoc['role'];
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -88,7 +105,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Future<void> _requestDriver() async {
-    await FirebaseFirestore.instance.collection('requests').add(
+    if (_userRole != 'customer') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Only customers can request a driver.')),
+      );
+      return;
+    }
+
+    DocumentReference requestRef = await FirebaseFirestore.instance.collection('requests').add(
       {
         'customer_id': FirebaseAuth.instance.currentUser!.uid,
         'location': GeoPoint(
@@ -98,7 +122,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         'status': 'pending',
       },
     );
+
     _showRequestSentDialog();
+    _listenForDriverAcceptance(requestRef.id);
   }
 
   void _showRequestSentDialog() {
@@ -117,6 +143,39 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         ],
       ),
     );
+  }
+
+  void _listenForDriverAcceptance(String requestId) {
+    FirebaseFirestore.instance.collection('requests').doc(requestId).snapshots().listen((snapshot) {
+      if (snapshot.exists && snapshot['status'] == 'accepted') {
+        setState(() {
+          _driverId = snapshot['driver_id'];
+        });
+        _startTrackingDriverLocation();
+      }
+    });
+  }
+
+  void _startTrackingDriverLocation() {
+    if (_driverId == null) return;
+
+    _driverLocationSubscription = FirebaseFirestore.instance.collection('drivers').doc(_driverId).snapshots().listen((snapshot) {
+      if (snapshot.exists) {
+        GeoPoint driverLocation = snapshot['location'];
+        LatLng driverLatLng = LatLng(driverLocation.latitude, driverLocation.longitude);
+
+        setState(() {
+          _markers.removeWhere((marker) => marker.markerId.value == 'driverMarker');
+          _markers.add(
+            Marker(
+              markerId: const MarkerId('driverMarker'),
+              position: driverLatLng,
+              infoWindow: const InfoWindow(title: 'Driver Location'),
+            ),
+          );
+        });
+      }
+    });
   }
 
   @override
@@ -141,10 +200,12 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             Positioned(
               bottom: 20,
               left: MediaQuery.of(context).size.width * 0.25,
-              child: ElevatedButton(
+              child: _userRole == 'customer'
+                  ? ElevatedButton(
                 onPressed: _requestDriver,
                 child: const Text('Request Driver'),
-              ),
+              )
+                  : Container(),
             ),
           ],
         )

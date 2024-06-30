@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
 
 class RequestDriverPage extends StatefulWidget {
@@ -12,15 +13,19 @@ class _RequestDriverPageState extends State<RequestDriverPage> {
   final _currentUser = FirebaseAuth.instance.currentUser!;
   late CollectionReference _requests;
   late CollectionReference _users;
+  late CollectionReference _locations;
   String _requestId = '';
   bool _isRequestPending = false;
   String? _userRole;
+  LatLng? _driverLocation;
+  StreamSubscription<DocumentSnapshot>? _driverLocationSubscription;
 
   @override
   void initState() {
     super.initState();
     _requests = FirebaseFirestore.instance.collection('requests');
     _users = FirebaseFirestore.instance.collection('users');
+    _locations = FirebaseFirestore.instance.collection('locations');
     _fetchUserRole();
   }
 
@@ -32,6 +37,13 @@ class _RequestDriverPageState extends State<RequestDriverPage> {
   }
 
   void _requestDriver() async {
+    if (_userRole != 'customer') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Only customers can request a driver.')),
+      );
+      return;
+    }
+
     final requestRef = await _requests.add({
       'customer_id': _currentUser.uid,
       'status': 'pending',
@@ -44,6 +56,7 @@ class _RequestDriverPageState extends State<RequestDriverPage> {
     });
 
     _startRequestTimer(requestRef.id);
+    _listenForDriverAcceptance(requestRef.id);
   }
 
   void _startRequestTimer(String requestId) {
@@ -59,6 +72,30 @@ class _RequestDriverPageState extends State<RequestDriverPage> {
         );
       }
     });
+  }
+
+  void _listenForDriverAcceptance(String requestId) {
+    _requests.doc(requestId).snapshots().listen((requestSnapshot) async {
+      if (requestSnapshot.exists && requestSnapshot['status'] == 'accepted') {
+        final driverId = requestSnapshot['driver_id'];
+        _driverLocationSubscription = _locations.doc(driverId).snapshots().listen((locationSnapshot) {
+          if (locationSnapshot.exists) {
+            setState(() {
+              _driverLocation = LatLng(
+                locationSnapshot['latitude'],
+                locationSnapshot['longitude'],
+              );
+            });
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _driverLocationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -79,13 +116,35 @@ class _RequestDriverPageState extends State<RequestDriverPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (_isRequestPending)
-              Text('Request is pending...'),
+              Column(
+                children: [
+                  Text('Request is pending...'),
+                  if (_driverLocation != null)
+                    SizedBox(
+                      height: 300,
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: _driverLocation!,
+                          zoom: 14,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: MarkerId('driver'),
+                            position: _driverLocation!,
+                          ),
+                        },
+                      ),
+                    ),
+                ],
+              ),
             SizedBox(height: 20),
             if (_userRole == 'customer')
               ElevatedButton(
                 onPressed: _isRequestPending ? null : _requestDriver,
                 child: Text('Request Driver'),
               ),
+            if (_userRole != 'customer')
+              Text('Only customers can request a driver.'),
           ],
         ),
       ),
