@@ -131,7 +131,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               onMapCreated: _onMapCreated,
               initialCameraPosition: CameraPosition(
                 target: _initialPosition,
-                zoom: 11.0,
+                zoom: 15.0,
               ),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
