@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:towbruh/pages/home_page.dart';
+import 'package:towbruh/pages/cust_home.dart';
+import 'package:towbruh/pages/driver_home.dart';
 import 'package:towbruh/message/message_page.dart';
-import 'package:towbruh/pages/settings_page.dart';
-import 'package:towbruh/pages/profile_page.dart'; // Updated import for ProfilePage
+import 'package:towbruh/pages/profile_page.dart';
 
 class NavBarScaffold extends StatefulWidget {
   final String userRole;
@@ -16,36 +16,29 @@ class NavBarScaffold extends StatefulWidget {
 class _NavBarScaffoldState extends State<NavBarScaffold> {
   int _selectedIndex = 0;
 
-  List<Widget> _widgetOptions(String userRole) {
-    return [
-      HomePage(userRole: userRole),
-      MessagePage(),
-      ProfilePage(),
-      SettingsPage(),
-    ];
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    Widget homePage;
+    if (widget.userRole == 'customer') {
+      homePage = CustomerHomePage();
+    } else if (widget.userRole == 'tow') {
+      homePage = TowDriverHomePage();
+    } else {
+      // Handle any other roles if necessary
+      homePage = Container(); // Placeholder for other roles
+    }
+
+    List<Widget> pages = [
+      homePage,
+      MessagePage(),
+      ProfilePage(),
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Page'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/settings');
-            },
-            icon: const Icon(Icons.settings),
-          ),
-        ],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: pages,
       ),
-      body: _widgetOptions(widget.userRole).elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -54,7 +47,7 @@ class _NavBarScaffoldState extends State<NavBarScaffold> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.message),
-            label: 'Message',
+            label: 'Messages',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -62,12 +55,11 @@ class _NavBarScaffoldState extends State<NavBarScaffold> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber[800],
-        onTap: _onItemTapped,
-        selectedFontSize: 14.0,
-        unselectedFontSize: 12.0,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
     );
   }

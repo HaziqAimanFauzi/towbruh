@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:towbruh/pages/home_page.dart';
 import 'package:towbruh/pages/login.dart';
 import 'package:towbruh/pages/register.dart';
 import 'package:towbruh/pages/settings_page.dart';
-import 'package:towbruh/pages/update_profile.dart'; // Import the update profile page
+import 'package:towbruh/pages/update_profile.dart';
+import 'package:towbruh/auth/auth_page.dart';
 import 'nav_bar_scaffold.dart';
-import 'auth/auth_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +24,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => AuthPage(),
-        '/home': (context) => NavBarScaffold(userRole: 'customer'), // Ensure userRole is passed correctly
+        '/cust_home': (context) => NavBarScaffold(userRole: 'customer'),
+        '/driver_home': (context) => NavBarScaffold(userRole: 'tow'),
         '/login': (context) => LoginPage(showRegisterPage: () {
           Navigator.pushNamed(context, '/register');
         }),
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
           Navigator.pushNamed(context, '/login');
         }),
         '/settings': (context) => const SettingsPage(),
-        '/update_profile': (context) => UpdateProfilePage(), // Register the update profile route
+        '/update_profile': (context) => UpdateProfilePage(),
       },
     );
   }

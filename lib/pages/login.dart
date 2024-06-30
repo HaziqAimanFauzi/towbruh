@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'home_page.dart'; // Import your home page
+import 'package:towbruh/pages/cust_home.dart'; // Import cust_home.dart
+import 'package:towbruh/pages/driver_home.dart'; // Import driver_home.dart
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showRegisterPage;
@@ -30,11 +31,19 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text.trim(),
       );
 
-      // Navigate to home page after successful login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage(userRole: 'customer')),
-      );
+      // Determine user role and navigate accordingly
+      if (userCredential.user != null) {
+        String userRole = 'customer'; // Replace with actual logic to fetch user role
+        if (userRole == 'customer') {
+          Navigator.pushReplacementNamed(context, '/cust_home');
+        } else if (userRole == 'tow') {
+          Navigator.pushReplacementNamed(context, '/driver_home');
+        } else {
+          setState(() {
+            _errorMessage = 'Invalid user role.';
+          });
+        }
+      }
     } on FirebaseAuthException catch (e) {
       print('Error signing in: $e');
       setState(() {

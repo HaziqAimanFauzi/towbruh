@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class DriverRequestsPage extends StatefulWidget {
   @override
@@ -8,17 +7,10 @@ class DriverRequestsPage extends StatefulWidget {
 }
 
 class _DriverRequestsPageState extends State<DriverRequestsPage> {
-  final _currentUser = FirebaseAuth.instance.currentUser!;
-  late CollectionReference _requests;
-
-  @override
-  void initState() {
-    super.initState();
-    _requests = FirebaseFirestore.instance.collection('requests');
-  }
+  final CollectionReference _requests = FirebaseFirestore.instance.collection('requests');
 
   void _acceptRequest(String requestId) async {
-    await _requests.doc(requestId).update({'status': 'accepted', 'driver_id': _currentUser.uid});
+    await _requests.doc(requestId).update({'status': 'accepted'});
   }
 
   @override
@@ -28,16 +20,16 @@ class _DriverRequestsPageState extends State<DriverRequestsPage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _requests.where('status', isEqualTo: 'pending').snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return CircularProgressIndicator();
-
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
           final requests = snapshot.data!.docs;
-
           return ListView.builder(
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final request = requests[index];
               return ListTile(
-                title: Text('Request from ${request['customer_id']}'),
+                title: Text('Request from customer: ${request['customer_id']}'),
                 trailing: ElevatedButton(
                   onPressed: () => _acceptRequest(request.id),
                   child: Text('Accept'),
