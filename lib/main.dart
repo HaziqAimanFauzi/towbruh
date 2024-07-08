@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:towbruh/location/request_driver_page.dart';
+import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/login.dart';
 import 'package:towbruh/pages/register.dart';
 import 'package:towbruh/pages/settings_page.dart';
 import 'package:towbruh/pages/update_profile.dart';
-import 'package:towbruh/auth/auth_page.dart';
 import 'nav_bar_scaffold.dart';
+import 'auth/auth_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +36,9 @@ class MyApp extends StatelessWidget {
         }),
         '/settings': (context) => const SettingsPage(),
         '/update_profile': (context) => UpdateProfilePage(),
+        '/request_driver': (context) => RequestDriverPage(),
+        '/messages': (context) => MessagePage(),
+        // Remove the chat route from the routes map
       },
     );
   }
