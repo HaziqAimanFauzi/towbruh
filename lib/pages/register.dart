@@ -121,11 +121,11 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.directions_car,
-                  size: 100,
+                Image.asset(
+                  'assets/images/towbrobackground.png',
+                  height: 300, // Adjust the height as needed
                 ),
-                SizedBox(height: 75),
+                SizedBox(height: 5),
                 Text(
                   'Hello There!',
                   style: GoogleFonts.bebasNeue(
@@ -157,7 +157,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Name',
@@ -177,7 +177,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Phone',
@@ -197,7 +197,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Email',
@@ -218,7 +218,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Password',
@@ -249,7 +249,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Confirm Password',
@@ -288,7 +288,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       fillColor: Colors.grey[200],
@@ -302,7 +302,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: ElevatedButton(
                     onPressed: () => signUp(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: Colors.deepOrange,
                       padding: EdgeInsets.all(20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

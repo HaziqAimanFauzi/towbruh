@@ -73,13 +73,13 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.directions_car,
-                  size: 100,
+                Image.asset(
+                  'assets/images/towbrobackground.png',
+                  height: 300, // Adjust the height as needed
                 ),
-                SizedBox(height: 75),
+                SizedBox(height: 1),
                 Text(
-                  'Hello Again!',
+                  'Welcome to TowBro!',
                   style: GoogleFonts.bebasNeue(
                     fontSize: 52,
                   ),
@@ -102,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Email',
@@ -123,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.deepPurple),
+                        borderSide: BorderSide(color: Colors.deepOrange),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       hintText: 'Password',
@@ -156,7 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: ElevatedButton(
                     onPressed: () => signIn(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: Colors.deepOrangeAccent,
                       padding: EdgeInsets.all(20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
