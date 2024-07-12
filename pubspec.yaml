@@ -48,6 +48,7 @@ dependencies:
   permission_handler: ^11.3.1
   http: ^1.2.1
   geofence_service: ^6.0.0
+  firebase_messaging: ^15.0.3
 
 
 

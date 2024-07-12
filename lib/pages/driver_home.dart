@@ -96,58 +96,119 @@ class _DriverHomePageState extends State<DriverHomePage> {
   }
 
   void _listenForRequests() {
-    // Listen for requests here, or implement a different logic for driver's page
-  }
-
-  void _acceptRequest(String requestId, Map<String, dynamic> requestData) async {
-    await FirebaseFirestore.instance.collection('requests').doc(requestId).update({
-      'status': 'accepted',
-      'driver_id': FirebaseAuth.instance.currentUser!.uid,
+    _requestSubscription = FirebaseFirestore.instance
+        .collection('requests')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .listen((snapshot) {
+      for (var document in snapshot.docs) {
+        // Handle new pending requests
+        _showRequestDialog(document.id, document['location']);
+      }
     });
-
-    _navigateToCustomer(requestData);
   }
 
-  void _navigateToCustomer(Map<String, dynamic> requestData) {
-    GeoPoint customerLocation = requestData['location'];
-    LatLng customerLatLng = LatLng(customerLocation.latitude, customerLocation.longitude);
+  void _showRequestDialog(String requestId, GeoPoint customerLocation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('New Request'),
+        content: const Text('A customer is requesting a driver.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Ignore'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _acceptRequest(requestId, customerLocation);
+            },
+            child: const Text('Accept'),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Future<void> _acceptRequest(String requestId, GeoPoint customerLocation) async {
+    await FirebaseFirestore.instance.collection('requests').doc(requestId).update(
+      {
+        'driver_id': FirebaseAuth.instance.currentUser!.uid,
+        'status': 'accepted',
+      },
+    );
+    _showRequestAcceptedDialog();
+    _addCustomerMarker(customerLocation);
+    _updateDriverLocation();
+    _setRouteToCustomer(LatLng(customerLocation.latitude, customerLocation.longitude));
+  }
+
+  void _showRequestAcceptedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Request Accepted'),
+        content: const Text('You have accepted the customer\'s request.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addCustomerMarker(GeoPoint customerLocation) {
     setState(() {
       _markers.add(
         Marker(
           markerId: const MarkerId('customerMarker'),
-          position: customerLatLng,
+          position: LatLng(customerLocation.latitude, customerLocation.longitude),
           infoWindow: const InfoWindow(title: 'Customer Location'),
         ),
       );
-
-      _mapController.animateCamera(
-        CameraUpdate.newLatLng(customerLatLng),
-      );
     });
-
-    // Start tracking driver's location to update in Firestore
-    _startTrackingDriverLocation();
   }
 
-  void _startTrackingDriverLocation() {
-    Geolocator.getPositionStream().listen((Position position) {
-      FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update({
-        'location': GeoPoint(position.latitude, position.longitude),
-      });
+  Future<void> _updateDriverLocation() async {
+    await FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update(
+      {
+        'location': GeoPoint(_currentPosition.latitude, _currentPosition.longitude),
+      },
+    );
+  }
 
-      LatLng driverLatLng = LatLng(position.latitude, position.longitude);
+  Future<void> _setRouteToCustomer(LatLng customerLatLng) async {
+    List<LatLng> polylineCoordinates = [];
+    PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
+      googleApiKey,
+      PointLatLng(_currentPosition.latitude, _currentPosition.longitude),
+      PointLatLng(customerLatLng.latitude, customerLatLng.longitude),
+    );
 
-      setState(() {
-        _markers.removeWhere((marker) => marker.markerId.value == 'driverMarker');
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('driverMarker'),
-            position: driverLatLng,
-            infoWindow: const InfoWindow(title: 'Your Location'),
-          ),
-        );
+    if (result.points.isNotEmpty) {
+      result.points.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
       });
+    } else {
+      print(result.errorMessage);
+    }
+
+    setState(() {
+      _polylines.add(
+        Polyline(
+          polylineId: const PolylineId('route'),
+          width: 5,
+          color: Colors.blue,
+          points: polylineCoordinates,
+        ),
+      );
     });
   }
 
@@ -157,16 +218,20 @@ class _DriverHomePageState extends State<DriverHomePage> {
       body: Center(
         child: _selectedIndex == 0
             ? _locationPermissionGranted
-            ? GoogleMap(
-          onMapCreated: _onMapCreated,
-          initialCameraPosition: CameraPosition(
-            target: _initialPosition,
-            zoom: 15.0,
-          ),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          markers: _markers,
-          polylines: _polylines,
+            ? Stack(
+          children: [
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _initialPosition,
+                zoom: 15.0,
+              ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              markers: _markers,
+              polylines: _polylines,
+            ),
+          ],
         )
             : const Text('Location permission not granted')
             : _widgetOptionsDriver.elementAt(_selectedIndex),

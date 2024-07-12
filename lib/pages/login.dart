@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:towbruh/pages/cust_home.dart'; // Import cust_home.dart
 import 'package:towbruh/pages/driver_home.dart'; // Import driver_home.dart
+import 'package:firebase_messaging/firebase_messaging.dart'; // Import Firebase Messaging
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class LoginPage extends StatefulWidget {
   final VoidCallback showRegisterPage;
@@ -20,6 +23,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscureText = true;
   String _errorMessage = '';
 
+  // Firebase Messaging instance
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  // Method to handle sign in
   Future<void> signIn(BuildContext context) async {
     setState(() {
       _isLoading = true;
@@ -33,14 +40,22 @@ class _LoginPageState extends State<LoginPage> {
 
       // Determine user role and navigate accordingly
       if (userCredential.user != null) {
-        String userRole = 'customer'; // Replace with actual logic to fetch user role
-        if (userRole == 'customer') {
-          Navigator.pushReplacementNamed(context, '/cust_home');
-        } else if (userRole == 'tow') {
-          Navigator.pushReplacementNamed(context, '/driver_home');
+        String uid = userCredential.user!.uid;
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          String userRole = userDoc.get('role');
+          if (userRole == 'customer') {
+            Navigator.pushReplacementNamed(context, '/cust_home');
+          } else if (userRole == 'tow') {
+            Navigator.pushReplacementNamed(context, '/driver_home');
+          } else {
+            setState(() {
+              _errorMessage = 'Invalid user role.';
+            });
+          }
         } else {
           setState(() {
-            _errorMessage = 'Invalid user role.';
+            _errorMessage = 'User not found.';
           });
         }
       }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // Import Firebase Messaging
 
 class RegisterPage extends StatefulWidget {
   final VoidCallback showLoginPage;
@@ -24,6 +25,23 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureTextConfirmPassword = true;
   String? _errorMessage;
 
+  // Firebase Messaging instance
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  // Method to save FCM token to Firestore
+  Future<void> saveFCMToken(String uid) async {
+    String? fcmToken = await _firebaseMessaging.getToken();
+    if (fcmToken != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'fcm_token': fcmToken,
+        });
+      } catch (error) {
+        print('Error saving FCM token: $error');
+      }
+    }
+  }
+
   Future<void> signUp(BuildContext context) async {
     setState(() {
       _isLoading = true;
@@ -43,6 +61,9 @@ class _RegisterPageState extends State<RegisterPage> {
           'phone': _phoneController.text.trim(),
           'role': _selectedRole,
         });
+
+        // Save FCM token after registration
+        await saveFCMToken(userCredential.user!.uid);
 
         // Additional fields for tow profile
         if (_selectedRole == 'tow') {
