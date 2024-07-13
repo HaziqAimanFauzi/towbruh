@@ -205,11 +205,11 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 onPressed: _requestDriver,
                 child: const Text('Request Driver'),
               )
-                  : Container(),
+                  : const SizedBox.shrink(),
             ),
           ],
         )
-            : const Text('Location permission not granted')
+            : const CircularProgressIndicator()
             : _widgetOptionsCustomer.elementAt(_selectedIndex),
       ),
     );

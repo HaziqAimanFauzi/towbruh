@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:towbruh/message/chat_page.dart';
 
 class DriverRequestsPage extends StatefulWidget {
   @override
@@ -33,6 +34,11 @@ class _DriverRequestsPageState extends State<DriverRequestsPage> {
         _acceptedRequestId = requestId;
       });
     }
+
+    // Create a new chat between driver and customer
+    FirebaseFirestore.instance.collection('chatRooms').add({
+      'participants': [customerId, _currentUser.uid],
+    });
   }
 
   void _startLocationUpdates() {

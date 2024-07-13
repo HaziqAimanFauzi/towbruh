@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart';
 
@@ -27,6 +27,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   late PolylinePoints _polylinePoints;
   final String googleApiKey = 'YOUR_API_KEY';
   StreamSubscription<QuerySnapshot>? _requestSubscription;
+  late Stream<QuerySnapshot> _chats; // Stream for chat rooms
 
   final List<Widget> _widgetOptionsDriver = [
     const Text('Home Page Content'),
@@ -40,6 +41,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
     _listenForRequests();
+    _loadChatRooms(); // Initialize chat room stream
   }
 
   @override
@@ -133,83 +135,84 @@ class _DriverHomePageState extends State<DriverHomePage> {
     );
   }
 
-  Future<void> _acceptRequest(String requestId, GeoPoint customerLocation) async {
-    await FirebaseFirestore.instance.collection('requests').doc(requestId).update(
-      {
-        'driver_id': FirebaseAuth.instance.currentUser!.uid,
-        'status': 'accepted',
-      },
-    );
+  void _acceptRequest(String requestId, GeoPoint customerLocation) async {
+    await FirebaseFirestore.instance.collection('requests').doc(requestId).update({
+      'status': 'accepted',
+      'driver_id': FirebaseAuth.instance.currentUser!.uid,
+    });
+
     _showRequestAcceptedDialog();
     _addCustomerMarker(customerLocation);
-    _updateDriverLocation();
+    _startTrackingDriverLocation();
     _setRouteToCustomer(LatLng(customerLocation.latitude, customerLocation.longitude));
   }
 
   void _showRequestAcceptedDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Request Accepted'),
-        content: const Text('You have accepted the customer\'s request.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Request Accepted'),
+          content: Text('You have accepted the customer\'s request.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _addCustomerMarker(GeoPoint customerLocation) {
+    LatLng customerLatLng = LatLng(customerLocation.latitude, customerLocation.longitude);
     setState(() {
       _markers.add(
         Marker(
           markerId: const MarkerId('customerMarker'),
-          position: LatLng(customerLocation.latitude, customerLocation.longitude),
+          position: customerLatLng,
           infoWindow: const InfoWindow(title: 'Customer Location'),
         ),
       );
     });
   }
 
-  Future<void> _updateDriverLocation() async {
-    await FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update(
-      {
-        'location': GeoPoint(_currentPosition.latitude, _currentPosition.longitude),
-      },
-    );
+  void _startTrackingDriverLocation() {
+    Geolocator.getPositionStream().listen((Position position) {
+      FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update({
+        'location': GeoPoint(position.latitude, position.longitude),
+      });
+
+      LatLng driverLatLng = LatLng(position.latitude, position.longitude);
+
+      setState(() {
+        _markers.removeWhere((marker) => marker.markerId.value == 'driverMarker');
+        _markers.add(
+          Marker(
+            markerId: const MarkerId('driverMarker'),
+            position: driverLatLng,
+            infoWindow: const InfoWindow(title: 'Your Location'),
+          ),
+        );
+      });
+    });
   }
 
-  Future<void> _setRouteToCustomer(LatLng customerLatLng) async {
-    List<LatLng> polylineCoordinates = [];
-    PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
-      googleApiKey,
-      PointLatLng(_currentPosition.latitude, _currentPosition.longitude),
-      PointLatLng(customerLatLng.latitude, customerLatLng.longitude),
-    );
+  void _setRouteToCustomer(LatLng customerLatLng) {
+    // Implement logic to set route or polyline to customer's location
+    // Example using PolylinePoints and Google Maps:
+    // _polylinePoints.add(...);
+    // _polylines.add(...);
+  }
 
-    if (result.points.isNotEmpty) {
-      result.points.forEach((PointLatLng point) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
-    } else {
-      print(result.errorMessage);
-    }
-
-    setState(() {
-      _polylines.add(
-        Polyline(
-          polylineId: const PolylineId('route'),
-          width: 5,
-          color: Colors.blue,
-          points: polylineCoordinates,
-        ),
-      );
-    });
+  void _loadChatRooms() {
+    _chats = FirebaseFirestore.instance
+        .collection('chatRooms')
+        .where('participants', arrayContains: FirebaseAuth.instance.currentUser!.uid)
+        .snapshots();
   }
 
   @override
@@ -218,23 +221,50 @@ class _DriverHomePageState extends State<DriverHomePage> {
       body: Center(
         child: _selectedIndex == 0
             ? _locationPermissionGranted
-            ? Stack(
-          children: [
-            GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: _initialPosition,
-                zoom: 15.0,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              markers: _markers,
-              polylines: _polylines,
-            ),
-          ],
+            ? GoogleMap(
+          onMapCreated: _onMapCreated,
+          initialCameraPosition: CameraPosition(
+            target: _initialPosition,
+            zoom: 15.0,
+          ),
+          myLocationEnabled: true,
+          myLocationButtonEnabled: true,
+          markers: _markers,
+          polylines: _polylines,
         )
             : const Text('Location permission not granted')
             : _widgetOptionsDriver.elementAt(_selectedIndex),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Drawer Header',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              title: Text('Item 1'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: Text('Item 2'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

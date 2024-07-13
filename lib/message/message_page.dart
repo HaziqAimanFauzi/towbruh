@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'chat_page.dart'; // Import the ChatPage here
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:towbruh/message/chat_page.dart';
 
 class MessagePage extends StatefulWidget {
   @override
@@ -9,55 +9,54 @@ class MessagePage extends StatefulWidget {
 }
 
 class _MessagePageState extends State<MessagePage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final _currentUser = FirebaseAuth.instance.currentUser!;
+  late Stream<QuerySnapshot> _chats;
+
+  @override
+  void initState() {
+    super.initState();
+    _chats = FirebaseFirestore.instance
+        .collection('chatRooms')
+        .where('participants', arrayContains: _currentUser.uid)
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Messages'),
-      ),
+      appBar: AppBar(title: const Text('Messages')),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('chatRooms')
-            .where('participants', arrayContains: _auth.currentUser!.uid)
-            .snapshots(),
+        stream: _chats,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           final chatRooms = snapshot.data!.docs;
-          return ListView(
-            children: chatRooms.map((doc) {
-              final chatRoomData = doc.data() as Map<String, dynamic>;
-              final chatRoomId = doc.id;
-              final participants = chatRoomData['participants'] as List;
-              final otherParticipant = participants.firstWhere((uid) => uid != _auth.currentUser!.uid);
+          return ListView.builder(
+            itemCount: chatRooms.length,
+            itemBuilder: (context, index) {
+              final chatRoom = chatRooms[index];
+              final List participants = chatRoom['participants'];
+              participants.remove(_currentUser.uid);
+              final String recipientId = participants.first;
+              final Map<String, dynamic> user = {}; // Replace with actual user data
 
-              return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('users').doc(otherParticipant).get(),
-                builder: (context, userSnapshot) {
-                  if (!userSnapshot.hasData) {
-                    return ListTile(
-                      title: Text('Loading...'),
-                    );
-                  }
-                  final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-                  return ListTile(
-                    title: Text(userData['name']),
-                    subtitle: Text(userData['email']),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatPage(chatRoomId: chatRoomId, user: userData),
-                        ),
-                      );
-                    },
+              return ListTile(
+                title: Text('Chat with: $recipientId'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatPage(
+                        chatRoomId: chatRoom.id,
+                        recipientId: recipientId,
+                        user: user, // Provide the required user parameter
+                      ),
+                    ),
                   );
                 },
               );
-            }).toList(),
+            },
           );
         },
       ),
