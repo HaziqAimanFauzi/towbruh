@@ -28,31 +28,52 @@ class _MessagePageState extends State<MessagePage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _chats,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Text('No messages yet.'),
+            );
           }
           final chatRooms = snapshot.data!.docs;
           return ListView.builder(
             itemCount: chatRooms.length,
             itemBuilder: (context, index) {
               final chatRoom = chatRooms[index];
-              final List participants = chatRoom['participants'];
+              final List<dynamic> participants = List.from(chatRoom['participants']);
               participants.remove(_currentUser.uid);
+              if (participants.isEmpty) {
+                return SizedBox.shrink(); // Skip empty chat rooms
+              }
               final String recipientId = participants.first;
-              final Map<String, dynamic> user = {}; // Replace with actual user data
-
-              return ListTile(
-                title: Text('Chat with: $recipientId'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatPage(
-                        chatRoomId: chatRoom.id,
-                        recipientId: recipientId,
-                        user: user, // Provide the required user parameter
-                      ),
-                    ),
+              // Fetch user data for recipientId here
+              // Example: Replace this with actual data fetching logic
+              Map<String, dynamic> user = {}; // Placeholder for user data
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance.collection('users').doc(recipientId).get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return SizedBox.shrink(); // Skip if user data not found
+                  }
+                  user = snapshot.data!.data() as Map<String, dynamic>;
+                  return ListTile(
+                    title: Text('Chat with: ${user['name']}'), // Use recipient's name
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatPage(
+                            chatRoomId: chatRoom.id,
+                            recipientId: recipientId,
+                            user: user,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );
