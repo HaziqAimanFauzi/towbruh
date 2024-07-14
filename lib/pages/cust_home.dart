@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:towbruh/message/chat_page.dart';
 import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart';
 
@@ -41,8 +42,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     super.initState();
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
-    _fetchUserRole(); // Fetch user role when initializing the widget
-    _fetchWorkshops(); // Fetch workshop locations
+    _fetchUserRole();
   }
 
   @override
@@ -153,8 +153,36 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           _driverId = snapshot['driver_id'];
         });
         _startTrackingDriverLocation();
+
+        // Create a chat room between the customer and the driver
+        _createChatRoom(snapshot['driver_id']);
       }
     });
+  }
+
+  Future<void> _createChatRoom(String driverId) async {
+    final currentUser = FirebaseAuth.instance.currentUser!;
+    DocumentReference chatRoomRef = await FirebaseFirestore.instance.collection('chatRooms').add({
+      'participants': [currentUser.uid, driverId],
+      'lastMessage': '',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Fetch driver details
+    DocumentSnapshot driverDoc = await FirebaseFirestore.instance.collection('users').doc(driverId).get();
+    Map<String, dynamic> driverData = driverDoc.data() as Map<String, dynamic>;
+
+    // Navigate to chat room
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPage(
+          chatRoomId: chatRoomRef.id,
+          user: driverData,
+          recipientId: driverId,
+        ),
+      ),
+    );
   }
 
   void _startTrackingDriverLocation() {
@@ -176,24 +204,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           );
         });
       }
-    });
-  }
-
-  Future<void> _fetchWorkshops() async {
-    // Fetch workshops from Firestore
-    QuerySnapshot workshopSnapshot = await FirebaseFirestore.instance.collection('workshops').get();
-
-    setState(() {
-      _markers.addAll(
-        workshopSnapshot.docs.map((document) {
-          GeoPoint location = document['location'];
-          return Marker(
-            markerId: MarkerId(document.id),
-            position: LatLng(location.latitude, location.longitude),
-            infoWindow: InfoWindow(title: document['name']),
-          );
-        }).toSet(),
-      );
     });
   }
 

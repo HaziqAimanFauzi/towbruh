@@ -1,54 +1,29 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:towbruh/message/message_page.dart';
-import 'package:towbruh/pages/profile_page.dart';
-import 'package:towbruh/location/request_list.dart'; // Import the request list page
+import 'package:towbruh/message/chat_page.dart';
 
 class DriverHomePage extends StatefulWidget {
-  const DriverHomePage({Key? key}) : super(key: key);
-
   @override
   _DriverHomePageState createState() => _DriverHomePageState();
 }
 
 class _DriverHomePageState extends State<DriverHomePage> {
-  int _selectedIndex = 0;
   late GoogleMapController _mapController;
   LatLng _initialPosition = const LatLng(45.521563, -122.677433);
   LatLng _currentPosition = const LatLng(45.521563, -122.677433);
   bool _locationPermissionGranted = false;
-  Set<Polyline> _polylines = {};
   Set<Marker> _markers = {};
-  late PolylinePoints _polylinePoints;
-  final String googleApiKey = 'YOUR_API_KEY';
-  StreamSubscription<QuerySnapshot>? _requestSubscription;
-  late Stream<QuerySnapshot> _chats; // Stream for chat rooms
-
-  final List<Widget> _widgetOptionsDriver = [
-    const Text('Home Page Content'),
-    MessagePage(),
-    ProfilePage(),
-  ];
+  String? _userRole;
 
   @override
   void initState() {
     super.initState();
-    _polylinePoints = PolylinePoints();
     _checkLocationPermission();
-    _listenForRequests();
-    _loadChatRooms(); // Initialize chat room stream
-  }
-
-  @override
-  void dispose() {
-    _requestSubscription?.cancel();
-    super.dispose();
+    _fetchUserRole();
   }
 
   Future<void> _checkLocationPermission() async {
@@ -63,6 +38,13 @@ class _DriverHomePageState extends State<DriverHomePage> {
     } else {
       print("Location permission denied");
     }
+  }
+
+  Future<void> _fetchUserRole() async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).get();
+    setState(() {
+      _userRole = userDoc['role'];
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -92,83 +74,65 @@ class _DriverHomePageState extends State<DriverHomePage> {
     _mapController = controller;
   }
 
-  void _listenForRequests() {
-    _requestSubscription = FirebaseFirestore.instance
-        .collection('requests')
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .listen((snapshot) {
-      for (var document in snapshot.docs) {
-        // Handle new pending requests
-        _showRequestDialog(document.id, document['location']);
-      }
+  Future<void> _acceptRequest(String requestId, GeoPoint customerLocation, String customerId) async {
+    await FirebaseFirestore.instance.collection('requests').doc(requestId).update({
+      'status': 'accepted',
+      'driver_id': FirebaseAuth.instance.currentUser!.uid,
     });
+
+    // Create a chat room between the driver and the customer
+    DocumentReference chatRoomRef = await FirebaseFirestore.instance.collection('chatRooms').add({
+      'participants': [FirebaseAuth.instance.currentUser!.uid, customerId],
+      'lastMessage': '',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Fetch customer details
+    DocumentSnapshot customerDoc = await FirebaseFirestore.instance.collection('users').doc(customerId).get();
+    Map<String, dynamic> customerData = customerDoc.data() as Map<String, dynamic>;
+
+    _showRequestAcceptedDialog();
+    _addCustomerMarker(customerLocation);
+    _startTrackingDriverLocation();
+    _setRouteToCustomer(LatLng(customerLocation.latitude, customerLocation.longitude));
+
+    // Navigate to chat room
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPage(
+          chatRoomId: chatRoomRef.id,
+          user: customerData,
+          recipientId: customerId,
+        ),
+      ),
+    );
   }
 
-  void _showRequestDialog(String requestId, GeoPoint customerLocation) {
+  void _showRequestAcceptedDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Request'),
-        content: const Text('A customer is requesting a driver.'),
+        title: const Text('Request Accepted'),
+        content: const Text('You have accepted the request.'),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text('Ignore'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _acceptRequest(requestId, customerLocation);
-            },
-            child: const Text('Accept'),
+            child: const Text('OK'),
           ),
         ],
       ),
     );
   }
 
-  void _acceptRequest(String requestId, GeoPoint customerLocation) async {
-    await FirebaseFirestore.instance.collection('requests').doc(requestId).update({
-      'status': 'accepted',
-      'driver_id': FirebaseAuth.instance.currentUser!.uid,
-    });
-
-    _showRequestAcceptedDialog();
-    _addCustomerMarker(customerLocation);
-    _startTrackingDriverLocation();
-    _setRouteToCustomer(LatLng(customerLocation.latitude, customerLocation.longitude));
-  }
-
-  void _showRequestAcceptedDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Request Accepted'),
-          content: Text('You have accepted the customer\'s request.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _addCustomerMarker(GeoPoint customerLocation) {
-    LatLng customerLatLng = LatLng(customerLocation.latitude, customerLocation.longitude);
     setState(() {
       _markers.add(
         Marker(
           markerId: const MarkerId('customerMarker'),
-          position: customerLatLng,
+          position: LatLng(customerLocation.latitude, customerLocation.longitude),
           infoWindow: const InfoWindow(title: 'Customer Location'),
         ),
       );
@@ -176,107 +140,100 @@ class _DriverHomePageState extends State<DriverHomePage> {
   }
 
   void _startTrackingDriverLocation() {
-    Geolocator.getPositionStream().listen((Position position) {
-      FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update({
-        'location': GeoPoint(position.latitude, position.longitude),
-      });
-
-      LatLng driverLatLng = LatLng(position.latitude, position.longitude);
-
-      setState(() {
-        _markers.removeWhere((marker) => marker.markerId.value == 'driverMarker');
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('driverMarker'),
-            position: driverLatLng,
-            infoWindow: const InfoWindow(title: 'Your Location'),
-          ),
-        );
-      });
-    });
+    // Add code to track driver location
   }
 
-  void _setRouteToCustomer(LatLng customerLatLng) {
-    // Implement logic to set route or polyline to customer's location
-    // Example using PolylinePoints and Google Maps:
-    // _polylinePoints.add(...);
-    // _polylines.add(...);
-  }
-
-  void _loadChatRooms() {
-    _chats = FirebaseFirestore.instance
-        .collection('chatRooms')
-        .where('participants', arrayContains: FirebaseAuth.instance.currentUser!.uid)
-        .snapshots();
+  void _setRouteToCustomer(LatLng customerLocation) {
+    // Add code to set route to customer
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: _selectedIndex == 0
-            ? _locationPermissionGranted
-            ? Stack(
-          children: [
-            GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: _initialPosition,
-                zoom: 15.0,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              markers: _markers,
-              polylines: _polylines,
-            ),
-            Positioned(
-              bottom: 20,
-              right: 20,
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RequestListPage()),
-                  );
-                },
-                child: Icon(Icons.list),
-              ),
-            ),
-          ],
-        )
-            : const Text('Location permission not granted')
-            : _widgetOptionsDriver.elementAt(_selectedIndex),
+      appBar: AppBar(
+        title: const Text('Driver Home'),
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Drawer Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
+      body: _locationPermissionGranted
+          ? Stack(
+        children: [
+          GoogleMap(
+            onMapCreated: _onMapCreated,
+            initialCameraPosition: CameraPosition(
+              target: _initialPosition,
+              zoom: 15.0,
+            ),
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            markers: _markers,
+          ),
+          Positioned(
+            bottom: 20,
+            left: MediaQuery.of(context).size.width * 0.25,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RequestListPage(onAcceptRequest: _acceptRequest),
+                  ),
+                );
+              },
+              child: const Text('View Requests'),
+            ),
+          ),
+        ],
+      )
+          : const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+class RequestListPage extends StatelessWidget {
+  final Function(String, GeoPoint, String) onAcceptRequest;
+
+  RequestListPage({required this.onAcceptRequest});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Request List'),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('requests').where('status', isEqualTo: 'pending').snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final requests = snapshot.data!.docs;
+
+          if (requests.isEmpty) {
+            return const Center(child: Text('No requests available.'));
+          }
+
+          return ListView.builder(
+            itemCount: requests.length,
+            itemBuilder: (context, index) {
+              final request = requests[index];
+              final customerLocation = request['location'];
+              final customerId = request['customer_id'];
+
+              return ListTile(
+                title: Text('Request from customer $customerId'),
+                subtitle: Text('Location: (${customerLocation.latitude}, ${customerLocation.longitude})'),
+                trailing: ElevatedButton(
+                  onPressed: () {
+                    onAcceptRequest(request.id, customerLocation, customerId);
+                  },
+                  child: const Text('Accept'),
                 ),
-              ),
-            ),
-            ListTile(
-              title: Text('Item 1'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Item 2'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
+              );
+            },
+          );
+        },
       ),
     );
   }
