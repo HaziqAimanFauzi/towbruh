@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart';
+import 'package:towbruh/location/request_list.dart'; // Import the RequestListPage
 
 class DriverHomePage extends StatefulWidget {
   const DriverHomePage({Key? key}) : super(key: key);
@@ -26,7 +26,6 @@ class _DriverHomePageState extends State<DriverHomePage> {
   Set<Marker> _markers = {};
   late PolylinePoints _polylinePoints;
   final String googleApiKey = 'YOUR_API_KEY';
-  StreamSubscription<QuerySnapshot>? _requestSubscription;
   late Stream<QuerySnapshot> _chats; // Stream for chat rooms
 
   final List<Widget> _widgetOptionsDriver = [
@@ -40,14 +39,8 @@ class _DriverHomePageState extends State<DriverHomePage> {
     super.initState();
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
-    _listenForRequests();
     _loadChatRooms(); // Initialize chat room stream
-  }
-
-  @override
-  void dispose() {
-    _requestSubscription?.cancel();
-    super.dispose();
+    _setupGeofenceService(); // Setup geofence service
   }
 
   Future<void> _checkLocationPermission() async {
@@ -97,122 +90,25 @@ class _DriverHomePageState extends State<DriverHomePage> {
     });
   }
 
-  void _listenForRequests() {
-    _requestSubscription = FirebaseFirestore.instance
-        .collection('requests')
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .listen((snapshot) {
-      for (var document in snapshot.docs) {
-        // Handle new pending requests
-        _showRequestDialog(document.id, document['location']);
-      }
-    });
-  }
-
-  void _showRequestDialog(String requestId, GeoPoint customerLocation) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Request'),
-        content: const Text('A customer is requesting a driver.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Ignore'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _acceptRequest(requestId, customerLocation);
-            },
-            child: const Text('Accept'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _acceptRequest(String requestId, GeoPoint customerLocation) async {
-    await FirebaseFirestore.instance.collection('requests').doc(requestId).update({
-      'status': 'accepted',
-      'driver_id': FirebaseAuth.instance.currentUser!.uid,
-    });
-
-    _showRequestAcceptedDialog();
-    _addCustomerMarker(customerLocation);
-    _startTrackingDriverLocation();
-    _setRouteToCustomer(LatLng(customerLocation.latitude, customerLocation.longitude));
-  }
-
-  void _showRequestAcceptedDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Request Accepted'),
-          content: Text('You have accepted the customer\'s request.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _addCustomerMarker(GeoPoint customerLocation) {
-    LatLng customerLatLng = LatLng(customerLocation.latitude, customerLocation.longitude);
-    setState(() {
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('customerMarker'),
-          position: customerLatLng,
-          infoWindow: const InfoWindow(title: 'Customer Location'),
-        ),
-      );
-    });
-  }
-
-  void _startTrackingDriverLocation() {
-    Geolocator.getPositionStream().listen((Position position) {
-      FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update({
-        'location': GeoPoint(position.latitude, position.longitude),
-      });
-
-      LatLng driverLatLng = LatLng(position.latitude, position.longitude);
-
-      setState(() {
-        _markers.removeWhere((marker) => marker.markerId.value == 'driverMarker');
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('driverMarker'),
-            position: driverLatLng,
-            infoWindow: const InfoWindow(title: 'Your Location'),
-          ),
-        );
-      });
-    });
-  }
-
-  void _setRouteToCustomer(LatLng customerLatLng) {
-    // Implement logic to set route or polyline to customer's location
-    // Example using PolylinePoints and Google Maps:
-    // _polylinePoints.add(...);
-    // _polylines.add(...);
-  }
-
   void _loadChatRooms() {
     _chats = FirebaseFirestore.instance
         .collection('chatRooms')
         .where('participants', arrayContains: FirebaseAuth.instance.currentUser!.uid)
         .snapshots();
+  }
+
+  void _navigateToRequestList() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => RequestListPage()),
+    );
+  }
+
+  // Method to setup geofence service
+  void _setupGeofenceService() {
+    // Initialize and configure your GeofenceService here
+    // You can use the provided code from before
+    // Ensure you initialize and start the geofence service appropriately
   }
 
   @override
@@ -269,6 +165,11 @@ class _DriverHomePageState extends State<DriverHomePage> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToRequestList,
+        tooltip: 'View Requests',
+        child: Icon(Icons.list),
       ),
     );
   }
