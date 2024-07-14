@@ -42,6 +42,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
     _fetchUserRole(); // Fetch user role when initializing the widget
+    _fetchWorkshops(); // Fetch workshop locations
   }
 
   @override
@@ -175,6 +176,24 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           );
         });
       }
+    });
+  }
+
+  Future<void> _fetchWorkshops() async {
+    // Fetch workshops from Firestore
+    QuerySnapshot workshopSnapshot = await FirebaseFirestore.instance.collection('workshops').get();
+
+    setState(() {
+      _markers.addAll(
+        workshopSnapshot.docs.map((document) {
+          GeoPoint location = document['location'];
+          return Marker(
+            markerId: MarkerId(document.id),
+            position: LatLng(location.latitude, location.longitude),
+            infoWindow: InfoWindow(title: document['name']),
+          );
+        }).toSet(),
+      );
     });
   }
 

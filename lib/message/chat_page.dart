@@ -5,12 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 class ChatPage extends StatefulWidget {
   final String chatRoomId;
   final Map<String, dynamic> user;
-  final String recipientId; // Add recipientId as a parameter
+  final String recipientId;
 
   ChatPage({
     required this.chatRoomId,
     required this.user,
-    required this.recipientId, // Ensure recipientId is required
+    required this.recipientId,
   });
 
   @override
@@ -40,7 +40,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.user['name']), // Access user's name from widget.user
+        title: Text(widget.user['name']),
       ),
       body: Column(
         children: [

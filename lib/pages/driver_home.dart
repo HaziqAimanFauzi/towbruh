@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart';
+import 'package:towbruh/location/request_list.dart'; // Import the request list page
 
 class DriverHomePage extends StatefulWidget {
   const DriverHomePage({Key? key}) : super(key: key);
@@ -89,12 +90,6 @@ class _DriverHomePageState extends State<DriverHomePage> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 
   void _listenForRequests() {
@@ -221,16 +216,33 @@ class _DriverHomePageState extends State<DriverHomePage> {
       body: Center(
         child: _selectedIndex == 0
             ? _locationPermissionGranted
-            ? GoogleMap(
-          onMapCreated: _onMapCreated,
-          initialCameraPosition: CameraPosition(
-            target: _initialPosition,
-            zoom: 15.0,
-          ),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          markers: _markers,
-          polylines: _polylines,
+            ? Stack(
+          children: [
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _initialPosition,
+                zoom: 15.0,
+              ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              markers: _markers,
+              polylines: _polylines,
+            ),
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RequestListPage()),
+                  );
+                },
+                child: Icon(Icons.list),
+              ),
+            ),
+          ],
         )
             : const Text('Location permission not granted')
             : _widgetOptionsDriver.elementAt(_selectedIndex),
