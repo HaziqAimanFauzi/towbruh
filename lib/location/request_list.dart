@@ -17,54 +17,184 @@ class _RequestListPageState extends State<RequestListPage> {
       appBar: AppBar(
         title: Text('Request List'),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('requests')
-            .where('status', isEqualTo: 'pending')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('requests')
+                  .where('status', isEqualTo: 'pending')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
 
-          final requests = snapshot.data!.docs;
+                final requests = snapshot.data!.docs;
 
-          if (requests.isEmpty) {
-            return Center(
-              child: Text('No pending requests.'),
-            );
-          }
+                if (requests.isEmpty) {
+                  return Center(
+                    child: Text('No pending requests.'),
+                  );
+                }
 
-          return ListView.builder(
-            itemCount: requests.length,
-            itemBuilder: (context, index) {
-              final request = requests[index];
-              final data = request.data() as Map<String, dynamic>;
+                return ListView.builder(
+                  itemCount: requests.length,
+                  itemBuilder: (context, index) {
+                    final request = requests[index];
+                    final data = request.data() as Map<String, dynamic>;
 
-              return ListTile(
-                title: Text(data['customerName'] ?? 'Unknown Customer'),
-                subtitle: Text(data['details'] ?? 'Details not available'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.check),
-                      onPressed: () {
-                        _handleAcceptRequest(request);
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: _firestore
+                          .collection('users')
+                          .doc(data['customerId'])
+                          .get(),
+                      builder: (context, customerSnapshot) {
+                        if (customerSnapshot.connectionState == ConnectionState.waiting) {
+                          return ListTile(
+                            title: Text('Loading customer...'),
+                          );
+                        }
+
+                        if (!customerSnapshot.hasData || !customerSnapshot.data!.exists) {
+                          return ListTile(
+                            title: Text('Customer not found'),
+                            subtitle: Text(data['details'] ?? 'Details not available'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.check),
+                                  onPressed: () {
+                                    _handleAcceptRequest(request);
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.close),
+                                  onPressed: () {
+                                    _handleRejectRequest(request);
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final customerData = customerSnapshot.data!.data() as Map<String, dynamic>;
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: customerData['profile_image'] != null
+                                ? NetworkImage(customerData['profile_image'] as String)
+                                : AssetImage('assets/default_profile.png') as ImageProvider,
+                          ),
+                          title: Text(customerData['name'] ?? 'Unknown Customer'),
+                          subtitle: Text(data['details'] ?? 'Details not available'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.check),
+                                onPressed: () {
+                                  _handleAcceptRequest(request);
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.close),
+                                onPressed: () {
+                                  _handleRejectRequest(request);
+                                },
+                              ),
+                            ],
+                          ),
+                        );
                       },
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () {
-                        _handleRejectRequest(request);
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Divider(),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('requests')
+                  .where('status', isEqualTo: 'accepted')
+                  .where('driverId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                final requests = snapshot.data!.docs;
+
+                if (requests.isEmpty) {
+                  return Center(
+                    child: Text('No accepted requests.'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: requests.length,
+                  itemBuilder: (context, index) {
+                    final request = requests[index];
+                    final data = request.data() as Map<String, dynamic>;
+
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: _firestore
+                          .collection('users')
+                          .doc(data['customerId'])
+                          .get(),
+                      builder: (context, customerSnapshot) {
+                        if (customerSnapshot.connectionState == ConnectionState.waiting) {
+                          return ListTile(
+                            title: Text('Loading customer...'),
+                          );
+                        }
+
+                        if (!customerSnapshot.hasData || !customerSnapshot.data!.exists) {
+                          return ListTile(
+                            title: Text('Customer not found'),
+                            subtitle: Text(data['details'] ?? 'Details not available'),
+                          );
+                        }
+
+                        final customerData = customerSnapshot.data!.data() as Map<String, dynamic>;
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: customerData['profile_image'] != null
+                                ? NetworkImage(customerData['profile_image'] as String)
+                                : AssetImage('assets/default_profile.png') as ImageProvider,
+                          ),
+                          title: Text(customerData['name'] ?? 'Unknown Customer'),
+                          subtitle: Text(data['details'] ?? 'Details not available'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatPage(
+                                  chatRoomId: data['chatRoomId'], // Ensure 'chatRoomId' is present in the document
+                                  user: {
+                                    'name': customerData['name'],
+                                    'id': data['customerId'],
+                                  },
+                                  recipientId: data['customerId'],
+                                ),
+                              ),
+                            );
+                          },
+                        );
                       },
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

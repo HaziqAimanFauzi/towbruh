@@ -30,6 +30,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   String? _driverId;
   StreamSubscription<DocumentSnapshot>? _driverLocationSubscription;
   String? _userRole;
+  Map<String, dynamic>? _driverData; // Added to store driver data
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
@@ -152,11 +153,19 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         setState(() {
           _driverId = snapshot['driver_id'];
         });
+        _fetchDriverData(snapshot['driver_id']); // Fetch driver data
         _startTrackingDriverLocation();
 
         // Create a chat room between the customer and the driver
         _createChatRoom(snapshot['driver_id']);
       }
+    });
+  }
+
+  Future<void> _fetchDriverData(String driverId) async {
+    DocumentSnapshot driverDoc = await FirebaseFirestore.instance.collection('users').doc(driverId).get();
+    setState(() {
+      _driverData = driverDoc.data() as Map<String, dynamic>?;
     });
   }
 
@@ -207,9 +216,45 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     });
   }
 
+  Widget _buildDriverAcceptedInfo() {
+    if (_driverData == null) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 3,
+            blurRadius: 5,
+            offset: Offset(0, 3), // changes position of shadow
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Driver Accepted Your Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text('Name: ${_driverData!['name']}'),
+          Text('Phone: ${_driverData!['phone']}'),
+          Text('Number Plate: ${_driverData!['number_plate']}'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Customer Home'),
+      ),
       body: Center(
         child: _selectedIndex == 0
             ? _locationPermissionGranted
@@ -236,6 +281,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               )
                   : const SizedBox.shrink(),
             ),
+            if (_driverData != null)
+              Positioned(
+                top: 10,
+                left: 10,
+                right: 10,
+                child: _buildDriverAcceptedInfo(),
+              ),
           ],
         )
             : const CircularProgressIndicator()
