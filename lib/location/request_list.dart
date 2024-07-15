@@ -16,6 +16,7 @@ class _RequestListPageState extends State<RequestListPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Request List'),
+        backgroundColor: Colors.lightBlue[500],
       ),
       body: Column(
         children: [

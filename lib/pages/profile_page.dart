@@ -114,9 +114,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             Container(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(26),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.white70,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(

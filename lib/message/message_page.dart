@@ -25,9 +25,10 @@ class _MessagePageState extends State<MessagePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          automaticallyImplyLeading: false, // Removes the back button
-          backgroundColor: Colors.orange[500],
-          title: const Text('Messages')),
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.orange[500],
+        title: const Text('Messages'),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _chats,
         builder: (context, snapshot) {
@@ -50,40 +51,61 @@ class _MessagePageState extends State<MessagePage> {
                 return SizedBox.shrink(); // Skip empty chat rooms
               }
               final String recipientId = participants.first;
-              // Fetch user data for recipientId here
-              // Example: Replace this with actual data fetching logic
-              Map<String, dynamic> user = {}; // Placeholder for user data
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance.collection('users').doc(recipientId).get(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+                    return SizedBox(
+                      height: 80, // Placeholder height while loading
+                      child: Center(child: CircularProgressIndicator()),
+                    );
                   }
                   if (!snapshot.hasData || !snapshot.data!.exists) {
                     return SizedBox.shrink(); // Skip if user data not found
                   }
-                  user = snapshot.data!.data() as Map<String, dynamic>;
-                  return ListTile(
-                    title: Text('Chat with: ${user['name']}'), // Use recipient's name
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatPage(
-                            chatRoomId: chatRoom.id,
-                            recipientId: recipientId,
-                            user: user,
-                          ),
-                        ),
-                      );
-                    },
-                  );
+                  Map<String, dynamic> user = snapshot.data!.data() as Map<String, dynamic>;
+                  return _buildChatItem(user, chatRoom.id, recipientId);
                 },
               );
             },
           );
         },
       ),
+    );
+  }
+
+  Widget _buildChatItem(Map<String, dynamic> user, String chatRoomId, String recipientId) {
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: CircleAvatar(
+        radius: 24,
+        backgroundImage: NetworkImage(user['profileImageUrl'] ?? ''), // Replace with user profile image
+      ),
+      title: Text(
+        user['name'] ?? 'Unknown',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        'Last message here...', // Implement logic to fetch and display last message
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Text(
+        '12:34 PM', // Replace with time logic
+        style: TextStyle(color: Colors.grey),
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatPage(
+              chatRoomId: chatRoomId,
+              recipientId: recipientId,
+              user: user,
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -136,42 +136,16 @@ class _DriverHomePageState extends State<DriverHomePage> {
             : const Text('Location permission not granted')
             : _widgetOptionsDriver.elementAt(_selectedIndex),
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Drawer Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              title: Text('Item 1'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Item 2'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToRequestList,
         tooltip: 'View Requests',
-        child: Icon(Icons.list),
+        child: Icon(
+            Icons.list,
+            color: Colors.white,
+          ),
+        backgroundColor: Colors.blue, // Set the background color to blue
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // Aligns FAB to the start (left)
     );
   }
 }
