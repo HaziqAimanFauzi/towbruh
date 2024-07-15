@@ -254,7 +254,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // Removes the back button
-        backgroundColor: Colors.orange[700],
+        backgroundColor: Colors.orange[500],
         title: Text('Customer Home'),
       ),
       body: Center(

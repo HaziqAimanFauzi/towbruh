@@ -89,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // Removes the back button
-        backgroundColor: Colors.orange[700],
+        backgroundColor: Colors.orange[500],
         title: Text('Profile'),
         actions: [
           IconButton(

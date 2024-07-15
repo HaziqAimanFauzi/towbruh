@@ -26,7 +26,7 @@ class _MessagePageState extends State<MessagePage> {
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: false, // Removes the back button
-          backgroundColor: Colors.orange[700],
+          backgroundColor: Colors.orange[500],
           title: const Text('Messages')),
       body: StreamBuilder<QuerySnapshot>(
         stream: _chats,

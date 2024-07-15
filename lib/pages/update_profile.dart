@@ -227,7 +227,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.orange[700],
+        backgroundColor: Colors.orange[500],
         title: Text('Update Profile'),
       ),
       body: Padding(
