@@ -55,12 +55,15 @@ class _NavBarScaffoldState extends State<NavBarScaffold> {
           ),
         ],
         currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800], // Dark yellow color
+        unselectedItemColor: Colors.grey, // You can change this to any color you want for unselected items
         onTap: (index) {
           setState(() {
             _selectedIndex = index;
           });
         },
       ),
+
     );
   }
 }
