@@ -115,6 +115,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.orange[700],
         title: Text('Driver Home'),
         automaticallyImplyLeading: false, // Remove back button
       ),

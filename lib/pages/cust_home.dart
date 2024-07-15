@@ -253,6 +253,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Removes the back button
+        backgroundColor: Colors.orange[700],
         title: Text('Customer Home'),
       ),
       body: Center(

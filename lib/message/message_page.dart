@@ -24,7 +24,10 @@ class _MessagePageState extends State<MessagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
+      appBar: AppBar(
+          automaticallyImplyLeading: false, // Removes the back button
+          backgroundColor: Colors.orange[700],
+          title: const Text('Messages')),
       body: StreamBuilder<QuerySnapshot>(
         stream: _chats,
         builder: (context, snapshot) {

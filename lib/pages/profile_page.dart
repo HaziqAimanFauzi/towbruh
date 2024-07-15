@@ -88,6 +88,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Removes the back button
+        backgroundColor: Colors.orange[700],
         title: Text('Profile'),
         actions: [
           IconButton(
