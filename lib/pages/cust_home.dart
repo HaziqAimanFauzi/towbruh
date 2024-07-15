@@ -275,25 +275,38 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             ),
             Positioned(
               bottom: 20,
-              left: MediaQuery.of(context).size.width * 0.25,
-              child: _userRole == 'customer'
-                  ? ElevatedButton(
-                onPressed: _requestDriver,
-                child: const Text('Request Driver'),
-              )
-                  : const SizedBox.shrink(),
+              left: 20,
+              child: Row(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      iconSize: 50,
+                      icon: const Icon(Icons.search, color: Colors.white),
+                      onPressed: _requestDriver,
+                      tooltip: 'Request Driver',
+                    ),
+                  ),
+                  const SizedBox(width: 100),
+                ],
+              ),
             ),
-            if (_driverData != null)
+            if (_driverData != null) // Show driver accepted info if available
               Positioned(
-                top: 10,
-                left: 10,
-                right: 10,
+                top: 16,
+                left: 16,
+                right: 16,
                 child: _buildDriverAcceptedInfo(),
               ),
           ],
         )
-            : const CircularProgressIndicator()
-            : _widgetOptionsCustomer.elementAt(_selectedIndex),
+            : Center(child: CircularProgressIndicator())
+            : _widgetOptionsCustomer[_selectedIndex],
       ),
     );
   }
