@@ -40,6 +40,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.orange[400],
         title: Text(widget.user['name']),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),

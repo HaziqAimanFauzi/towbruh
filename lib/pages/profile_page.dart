@@ -32,31 +32,43 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileImage() {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 3,
-            blurRadius: 5,
-            offset: Offset(0, 3), // changes position of shadow
+    return Column(
+      children: [
+        Text(
+          'Welcome ${_userData!['name']}!',
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
           ),
-        ],
-      ),
-      child: ClipOval(
-        child: _profileImageUrl != null
-            ? Image.network(
-          _profileImageUrl!,
-          fit: BoxFit.cover,
-        )
-            : Image.asset(
-          'assets/default_profile.png',
-          fit: BoxFit.cover,
         ),
-      ),
+        SizedBox(height: 16),
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 3,
+                blurRadius: 5,
+                offset: Offset(0, 3), // changes position of shadow
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: _profileImageUrl != null
+                ? Image.network(
+              _profileImageUrl!,
+              fit: BoxFit.cover,
+            )
+                : Image.asset(
+              'assets/default_profile.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -113,31 +125,28 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: _buildProfileImage(),
               ),
             ),
-            Container(
-              padding: EdgeInsets.all(26),
-              decoration: BoxDecoration(
+            SizedBox(
+              width: 300, // Fixed width for the container
+              child: Material(
                 color: Colors.white70,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: Offset(0, 3), // changes position of shadow
+                shadowColor: Colors.grey.withOpacity(0.3),
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(26),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildUserDataInfo('Name', _userData!['name']),
+                      _buildUserDataInfo('Email', _userData!['email']),
+                      _buildUserDataInfo('Phone', _userData!['phone']),
+                      if (_userData!['role'] == 'tow') ...[
+                        Divider(),
+                        _buildUserDataInfo('Number Plate', _userData!['number_plate']),
+                      ],
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildUserDataInfo('Name', _userData!['name']),
-                  _buildUserDataInfo('Email', _userData!['email']),
-                  _buildUserDataInfo('Phone', _userData!['phone']),
-                  if (_userData!['role'] == 'tow') ...[
-                    Divider(),
-                    _buildUserDataInfo('Number Plate', _userData!['number_plate']),
-                  ],
-                ],
+                ),
               ),
             ),
           ],

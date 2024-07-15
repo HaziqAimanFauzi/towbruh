@@ -279,14 +279,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               child: Row(
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 70,
+                    height: 70,
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      iconSize: 50,
+                      iconSize: 40,
                       icon: const Icon(Icons.search, color: Colors.white),
                       onPressed: _requestDriver,
                       tooltip: 'Request Driver',
