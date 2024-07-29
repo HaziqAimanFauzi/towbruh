@@ -80,7 +80,7 @@ class _RequestListPageState extends State<RequestListPage> {
                               IconButton(
                                 icon: Icon(Icons.check),
                                 onPressed: () {
-                                  _handleAcceptRequest(request);
+                                  _handleAcceptRequest(request, customerData['name'], customerData['phone'], customerData['number_plate']);
                                 },
                               ),
                               IconButton(
@@ -183,15 +183,21 @@ class _RequestListPageState extends State<RequestListPage> {
     );
   }
 
-  void _handleAcceptRequest(DocumentSnapshot request) {
+  void _handleAcceptRequest(DocumentSnapshot request, String name, String phone, String numberPlate) {
     final data = request.data() as Map<String, dynamic>;
 
-    _firestore.collection('requests').doc(request.id).update({
+    FirebaseFirestore.instance.collection('requests').doc(request.id).update({
       'status': 'accepted_by_driver',
       'driver_id': FirebaseAuth.instance.currentUser!.uid,
+      'drivers': FieldValue.arrayUnion([{
+        'driver_id': FirebaseAuth.instance.currentUser!.uid,
+        'name': name,
+        'phone': phone,
+        'number_plate': numberPlate,
+      }])
     }).then((_) {
       // Notify the customer that the driver has accepted the request
-      _firestore.collection('notifications').add({
+      FirebaseFirestore.instance.collection('notifications').add({
         'customer_id': data['customer_id'],
         'driver_id': FirebaseAuth.instance.currentUser!.uid,
         'request_id': request.id,
@@ -204,7 +210,7 @@ class _RequestListPageState extends State<RequestListPage> {
   }
 
   void _handleRejectRequest(DocumentSnapshot request) {
-    _firestore.collection('requests').doc(request.id).update({
+    FirebaseFirestore.instance.collection('requests').doc(request.id).update({
       'status': 'rejected',
     }).catchError((error) {
       print('Error rejecting request: $error');

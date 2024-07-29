@@ -32,6 +32,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   String? _userRole;
   Map<String, dynamic>? _driverData; // Added to store driver data
   String? _requestId; // Store request ID
+  Timer? _countdownTimer;
+  int _countdown = 30;
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
@@ -50,6 +52,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void dispose() {
     _driverLocationSubscription?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -131,6 +134,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     });
 
     _showRequestSentDialog();
+    _startCountdown();
     _listenForDriverAcceptance();
   }
 
@@ -139,17 +143,41 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Request Sent'),
-        content: const Text('Waiting for a driver to accept your request.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('OK'),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Waiting for a driver to accept your request.'),
+            SizedBox(height: 20),
+            Text('Time remaining: $_countdown seconds'),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _cancelRequest,
+              child: Text('Cancel Request'),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _startCountdown() {
+    _countdown = 30;
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_countdown == 0) {
+        timer.cancel();
+        Navigator.pop(context);
+      } else {
+        setState(() {
+          _countdown--;
+        });
+      }
+    });
+  }
+
+  void _cancelRequest() async {
+    await FirebaseFirestore.instance.collection('requests').doc(_requestId).delete();
+    Navigator.pop(context);
   }
 
   void _listenForDriverAcceptance() {
