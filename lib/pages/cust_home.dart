@@ -31,6 +31,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   StreamSubscription<DocumentSnapshot>? _driverLocationSubscription;
   String? _userRole;
   Map<String, dynamic>? _driverData; // Added to store driver data
+  String? _requestId; // Store request ID
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
@@ -125,8 +126,12 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       },
     );
 
+    setState(() {
+      _requestId = requestRef.id;
+    });
+
     _showRequestSentDialog();
-    _listenForDriverAcceptance(requestRef.id);
+    _listenForDriverAcceptance();
   }
 
   void _showRequestSentDialog() {
@@ -147,17 +152,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  void _listenForDriverAcceptance(String requestId) {
-    FirebaseFirestore.instance.collection('requests').doc(requestId).snapshots().listen((snapshot) {
-      if (snapshot.exists && snapshot['status'] == 'accepted') {
+  void _listenForDriverAcceptance() {
+    FirebaseFirestore.instance.collection('requests').doc(_requestId).snapshots().listen((snapshot) {
+      if (snapshot.exists && snapshot['status'] == 'accepted_by_driver') {
         setState(() {
           _driverId = snapshot['driver_id'];
         });
         _fetchDriverData(snapshot['driver_id']); // Fetch driver data
-        _startTrackingDriverLocation();
-
-        // Create a chat room between the customer and the driver
-        _createChatRoom(snapshot['driver_id']);
+        _showDriverAcceptanceDialog();
       }
     });
   }
@@ -166,6 +168,61 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     DocumentSnapshot driverDoc = await FirebaseFirestore.instance.collection('users').doc(driverId).get();
     setState(() {
       _driverData = driverDoc.data() as Map<String, dynamic>?;
+    });
+  }
+
+  void _showDriverAcceptanceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Driver Accepted Your Request'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: ${_driverData!['name']}'),
+            Text('Phone: ${_driverData!['phone']}'),
+            Text('Number Plate: ${_driverData!['number_plate']}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _acceptDriver();
+            },
+            child: const Text('Accept'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _rejectDriver();
+            },
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _acceptDriver() async {
+    await FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
+      'status': 'accepted_by_customer',
+    });
+
+    _startTrackingDriverLocation();
+    _createChatRoom(_driverId!);
+  }
+
+  Future<void> _rejectDriver() async {
+    await FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
+      'status': 'rejected_by_customer',
+    });
+
+    setState(() {
+      _driverId = null;
+      _driverData = null;
+      _requestId = null;
     });
   }
 

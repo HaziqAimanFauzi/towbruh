@@ -48,7 +48,7 @@ class _RequestListPageState extends State<RequestListPage> {
                     return FutureBuilder<DocumentSnapshot>(
                       future: _firestore
                           .collection('users')
-                          .doc(data['customerId'])
+                          .doc(data['customer_id'])
                           .get(),
                       builder: (context, customerSnapshot) {
                         if (customerSnapshot.connectionState == ConnectionState.waiting) {
@@ -61,23 +61,6 @@ class _RequestListPageState extends State<RequestListPage> {
                           return ListTile(
                             title: Text('Customer not found'),
                             subtitle: Text(data['details'] ?? 'Details not available'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.check),
-                                  onPressed: () {
-                                    _handleAcceptRequest(request);
-                                  },
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.close),
-                                  onPressed: () {
-                                    _handleRejectRequest(request);
-                                  },
-                                ),
-                              ],
-                            ),
                           );
                         }
 
@@ -121,8 +104,8 @@ class _RequestListPageState extends State<RequestListPage> {
             child: StreamBuilder<QuerySnapshot>(
               stream: _firestore
                   .collection('requests')
-                  .where('status', isEqualTo: 'accepted')
-                  .where('driverId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                  .where('status', isEqualTo: 'accepted_by_driver')
+                  .where('driver_id', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
@@ -146,7 +129,7 @@ class _RequestListPageState extends State<RequestListPage> {
                     return FutureBuilder<DocumentSnapshot>(
                       future: _firestore
                           .collection('users')
-                          .doc(data['customerId'])
+                          .doc(data['customer_id'])
                           .get(),
                       builder: (context, customerSnapshot) {
                         if (customerSnapshot.connectionState == ConnectionState.waiting) {
@@ -180,9 +163,9 @@ class _RequestListPageState extends State<RequestListPage> {
                                   chatRoomId: data['chatRoomId'], // Ensure 'chatRoomId' is present in the document
                                   user: {
                                     'name': customerData['name'],
-                                    'id': data['customerId'],
+                                    'id': data['customer_id'],
                                   },
-                                  recipientId: data['customerId'],
+                                  recipientId: data['customer_id'],
                                 ),
                               ),
                             );
@@ -204,28 +187,16 @@ class _RequestListPageState extends State<RequestListPage> {
     final data = request.data() as Map<String, dynamic>;
 
     _firestore.collection('requests').doc(request.id).update({
-      'status': 'accepted',
-      'driverId': FirebaseAuth.instance.currentUser!.uid,
+      'status': 'accepted_by_driver',
+      'driver_id': FirebaseAuth.instance.currentUser!.uid,
     }).then((_) {
-      if (data.containsKey('chatRoomId')) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatPage(
-              chatRoomId: data['chatRoomId'],
-              user: {
-                'name': data['customerName'],
-                'id': data['customerId'],
-              },
-              recipientId: data['customerId'],
-            ),
-          ),
-        );
-      } else {
-        // Handle case where chatRoomId is missing or null
-        print('Error: chatRoomId is missing in the request document.');
-        // Optionally show a snackbar or dialog to inform the user
-      }
+      // Notify the customer that the driver has accepted the request
+      _firestore.collection('notifications').add({
+        'customer_id': data['customer_id'],
+        'driver_id': FirebaseAuth.instance.currentUser!.uid,
+        'request_id': request.id,
+        'status': 'driver_accepted',
+      });
     }).catchError((error) {
       print('Error accepting request: $error');
       // Handle error, optionally show a snackbar or dialog

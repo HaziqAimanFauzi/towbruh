@@ -40,7 +40,6 @@ class _DriverHomePageState extends State<DriverHomePage> {
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
     _loadChatRooms(); // Initialize chat room stream
-    _setupGeofenceService(); // Setup geofence service
   }
 
   Future<void> _checkLocationPermission() async {
@@ -104,13 +103,6 @@ class _DriverHomePageState extends State<DriverHomePage> {
     );
   }
 
-  // Method to setup geofence service
-  void _setupGeofenceService() {
-    // Initialize and configure your GeofenceService here
-    // You can use the provided code from before
-    // Ensure you initialize and start the geofence service appropriately
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,9 +132,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
         onPressed: _navigateToRequestList,
         tooltip: 'View Requests',
         child: Icon(
-            Icons.list,
-            color: Colors.white,
-          ),
+          Icons.list,
+          color: Colors.white,
+        ),
         backgroundColor: Colors.blue, // Set the background color to blue
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // Aligns FAB to the start (left)
