@@ -161,7 +161,7 @@ class _RequestListPageState extends State<RequestListPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChatPage(
-                                  chatRoomId: data['chatRoomId'], // Ensure 'chatRoomId' is present in the document
+                                  chatRoomId: data['chatRoomId'] ?? '',
                                   user: {
                                     'name': customerData['name'],
                                     'id': data['customer_id'],

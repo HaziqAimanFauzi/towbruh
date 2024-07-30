@@ -226,17 +226,18 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   void _listenForDriverAcceptance() {
     FirebaseFirestore.instance.collection('requests').doc(_requestId).snapshots().listen((snapshot) {
-      if (snapshot.exists && snapshot['status'] == 'accepted_by_driver') {
+      if (snapshot.exists && snapshot.data()?['status'] == 'accepted_by_driver') {
         setState(() {
-          _driverId = snapshot['driver_id'];
+          _driverId = snapshot.data()?['driver_id'];
         });
-        _fetchDriverData(snapshot['driver_id']); // Fetch driver data
+        _fetchDriverData(snapshot.data()?['driver_id']); // Fetch driver data
         _showDriverAcceptanceDialog();
       }
     });
   }
 
-  Future<void> _fetchDriverData(String driverId) async {
+  Future<void> _fetchDriverData(String? driverId) async {
+    if (driverId == null) return;
     DocumentSnapshot driverDoc = await FirebaseFirestore.instance.collection('users').doc(driverId).get();
     setState(() {
       _driverData = driverDoc.data() as Map<String, dynamic>?;
@@ -300,10 +301,20 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   Future<void> _createChatRoom(String driverId) async {
     final currentUser = FirebaseAuth.instance.currentUser!;
-    DocumentReference chatRoomRef = await FirebaseFirestore.instance.collection('chatRooms').add({
-      'participants': [currentUser.uid, driverId],
-      'lastMessage': '',
-      'timestamp': FieldValue.serverTimestamp(),
+    DocumentReference chatRoomRef = await FirebaseFirestore.instance
+        .collection('chatRooms')
+        .where('participants', arrayContains: currentUser.uid)
+        .get()
+        .then((querySnapshot) {
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.reference;
+      } else {
+        return FirebaseFirestore.instance.collection('chatRooms').add({
+          'participants': [currentUser.uid, driverId],
+          'lastMessage': '',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
     });
 
     // Fetch driver details

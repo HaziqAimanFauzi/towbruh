@@ -21,6 +21,36 @@ class _MessagePageState extends State<MessagePage> {
         .snapshots();
   }
 
+  Future<void> _deleteChatRoom(String chatRoomId) async {
+    try {
+      // Delete all messages in the chat room
+      var messages = await FirebaseFirestore.instance
+          .collection('chatRooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .get();
+
+      for (var message in messages.docs) {
+        await FirebaseFirestore.instance
+            .collection('chatRooms')
+            .doc(chatRoomId)
+            .collection('messages')
+            .doc(message.id)
+            .delete();
+      }
+
+      // Delete the chat room
+      await FirebaseFirestore.instance.collection('chatRooms').doc(chatRoomId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Chat deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete chat')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,9 +120,18 @@ class _MessagePageState extends State<MessagePage> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Text(
-        '12:34 PM', // Replace with time logic
-        style: TextStyle(color: Colors.grey),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '12:34 PM', // Replace with time logic
+            style: TextStyle(color: Colors.grey),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => _deleteChatRoom(chatRoomId),
+          ),
+        ],
       ),
       onTap: () {
         Navigator.push(
