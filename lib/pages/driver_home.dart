@@ -8,7 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart';
-import 'package:towbruh/location/request_list.dart'; // Import the RequestListPage
+import 'package:towbruh/location/request_list.dart';
 
 class DriverHomePage extends StatefulWidget {
   const DriverHomePage({Key? key}) : super(key: key);
@@ -27,7 +27,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   Set<Marker> _markers = {};
   late polyline_points.PolylinePoints _polylinePoints;
   final String googleApiKey = 'AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ';
-  late StreamSubscription<QuerySnapshot> _requestSubscription; // Corrected type
+  late StreamSubscription<QuerySnapshot> _requestSubscription;
   LatLng? _customerLocation;
   String? _requestId;
 
@@ -43,6 +43,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
     _polylinePoints = polyline_points.PolylinePoints();
     _checkLocationPermission();
     _startListeningToRequestUpdates();
+    _updateDriverLocation();
   }
 
   @override
@@ -131,9 +132,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
 
     if (result.points.isNotEmpty) {
       List<LatLng> polylineCoordinates = [];
-      result.points.forEach((polyline_points.PointLatLng point) {
+      for (var point in result.points) {
         polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
+      }
 
       setState(() {
         _polylines.add(
@@ -155,13 +156,31 @@ class _DriverHomePageState extends State<DriverHomePage> {
     );
   }
 
+  void _updateDriverLocation() {
+    Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10, // Update location if moved by 10 meters
+      ),
+    ).listen((Position position) {
+      if (position != null) {
+        FirebaseFirestore.instance.collection('drivers').doc(FirebaseAuth.instance.currentUser!.uid).update({
+          'location': GeoPoint(position.latitude, position.longitude),
+        });
+        setState(() {
+          _currentPosition = LatLng(position.latitude, position.longitude);
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.orange[500],
         title: Text('Driver Home'),
-        automaticallyImplyLeading: false, // Remove back button
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: _selectedIndex == 0
@@ -195,7 +214,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
                         color: Colors.grey.withOpacity(0.3),
                         spreadRadius: 3,
                         blurRadius: 5,
-                        offset: Offset(0, 3), // changes position of shadow
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
@@ -222,9 +241,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
           Icons.list,
           color: Colors.white,
         ),
-        backgroundColor: Colors.blue, // Set the background color to blue
+        backgroundColor: Colors.blue,
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // Aligns FAB to the start (left)
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
   }
 }

@@ -21,7 +21,7 @@ class CustomerHomePage extends StatefulWidget {
 
 class _CustomerHomePageState extends State<CustomerHomePage> {
   int _selectedIndex = 0;
-  late GoogleMapController _mapController;
+  GoogleMapController? _mapController;
   LatLng _initialPosition = const LatLng(3.1390, 101.6869); // Default to Kuala Lumpur
   LatLng _currentPosition = const LatLng(3.1390, 101.6869);
   bool _locationPermissionGranted = false;
@@ -93,6 +93,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       _currentPosition = LatLng(position.latitude, position.longitude);
       _initialPosition = _currentPosition;
       _addCustomerMarker();
+      _moveCameraToCurrentLocation();
     });
   }
 
@@ -108,8 +109,15 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     });
   }
 
+  void _moveCameraToCurrentLocation() {
+    if (_mapController != null) {
+      _mapController!.animateCamera(CameraUpdate.newLatLng(_currentPosition));
+    }
+  }
+
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    _moveCameraToCurrentLocation();
     _loadNearbyWorkshops(); // Load workshops when the map is created
   }
 
@@ -226,22 +234,25 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   void _listenForDriverAcceptance() {
     FirebaseFirestore.instance.collection('requests').doc(_requestId).snapshots().listen((snapshot) {
-      if (snapshot.exists && snapshot.data()?['status'] == 'accepted_by_driver') {
-        setState(() {
-          _driverId = snapshot.data()?['driver_id'];
-        });
-        _fetchDriverData(snapshot.data()?['driver_id']); // Fetch driver data
-        _showDriverAcceptanceDialog();
+      if (snapshot.exists && snapshot.data() != null) {
+        if (snapshot.data()!['status'] == 'accepted_by_driver') {
+          setState(() {
+            _driverId = snapshot.data()!['driver_id'];
+          });
+          _fetchDriverData(_driverId!); // Fetch driver data
+          _showDriverAcceptanceDialog();
+        }
       }
     });
   }
 
-  Future<void> _fetchDriverData(String? driverId) async {
-    if (driverId == null) return;
+  Future<void> _fetchDriverData(String driverId) async {
     DocumentSnapshot driverDoc = await FirebaseFirestore.instance.collection('users').doc(driverId).get();
-    setState(() {
-      _driverData = driverDoc.data() as Map<String, dynamic>?;
-    });
+    if (driverDoc.exists) {
+      setState(() {
+        _driverData = driverDoc.data() as Map<String, dynamic>?;
+      });
+    }
   }
 
   void _showDriverAcceptanceDialog() {
@@ -249,7 +260,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Driver Accepted Your Request'),
-        content: Column(
+        content: _driverData != null
+            ? Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -257,7 +269,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             Text('Phone: ${_driverData!['phone']}'),
             Text('Number Plate: ${_driverData!['number_plate']}'),
           ],
-        ),
+        )
+            : CircularProgressIndicator(),
         actions: [
           TextButton(
             onPressed: () {
@@ -279,42 +292,36 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Future<void> _acceptDriver() async {
-    await FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
-      'status': 'accepted_by_customer',
-    });
+    if (_requestId != null) {
+      await FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
+        'status': 'accepted_by_customer',
+      });
 
-    _startTrackingDriverLocation();
-    _createChatRoom(_driverId!);
+      _startTrackingDriverLocation();
+      _createChatRoom(_driverId!);
+    }
   }
 
   Future<void> _rejectDriver() async {
-    await FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
-      'status': 'rejected_by_customer',
-    });
+    if (_requestId != null) {
+      await FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
+        'status': 'rejected_by_customer',
+      });
 
-    setState(() {
-      _driverId = null;
-      _driverData = null;
-      _requestId = null;
-    });
+      setState(() {
+        _driverId = null;
+        _driverData = null;
+        _requestId = null;
+      });
+    }
   }
 
   Future<void> _createChatRoom(String driverId) async {
     final currentUser = FirebaseAuth.instance.currentUser!;
-    DocumentReference chatRoomRef = await FirebaseFirestore.instance
-        .collection('chatRooms')
-        .where('participants', arrayContains: currentUser.uid)
-        .get()
-        .then((querySnapshot) {
-      if (querySnapshot.docs.isNotEmpty) {
-        return querySnapshot.docs.first.reference;
-      } else {
-        return FirebaseFirestore.instance.collection('chatRooms').add({
-          'participants': [currentUser.uid, driverId],
-          'lastMessage': '',
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-      }
+    DocumentReference chatRoomRef = await FirebaseFirestore.instance.collection('chatRooms').add({
+      'participants': [currentUser.uid, driverId],
+      'lastMessage': '',
+      'timestamp': FieldValue.serverTimestamp(),
     });
 
     // Fetch driver details
@@ -339,7 +346,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
     _driverLocationSubscription = FirebaseFirestore.instance.collection('drivers').doc(_driverId).snapshots().listen((snapshot) {
       if (snapshot.exists) {
-        GeoPoint driverLocation = snapshot['location'];
+        GeoPoint driverLocation = snapshot.data()!['location'];
         LatLng driverLatLng = LatLng(driverLocation.latitude, driverLocation.longitude);
 
         setState(() {
@@ -411,7 +418,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 ),
               );
             });
-            _mapController.animateCamera(
+            _mapController?.animateCamera(
               CameraUpdate.newLatLng(_selectedWorkshopLocation!),
             );
             Navigator.pop(context); // Close the dialog after selecting
