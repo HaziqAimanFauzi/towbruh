@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:towbruh/message/chat_page.dart'; // Import the chat page
+import 'package:towbruh/message/chat_page.dart';
 
 class RequestListPage extends StatefulWidget {
   @override
@@ -183,12 +183,14 @@ class _RequestListPageState extends State<RequestListPage> {
     );
   }
 
-  void _handleAcceptRequest(DocumentSnapshot request, String name, String phone, String numberPlate) {
+  void _handleAcceptRequest(DocumentSnapshot request, String name, String phone, String numberPlate) async {
     final data = request.data() as Map<String, dynamic>;
+    final chatRoomRef = await _createChatRoom(data['customer_id']);
 
     FirebaseFirestore.instance.collection('requests').doc(request.id).update({
       'status': 'accepted_by_driver',
       'driver_id': FirebaseAuth.instance.currentUser!.uid,
+      'chatRoomId': chatRoomRef.id, // Store chatRoomId in the request
       'drivers': FieldValue.arrayUnion([{
         'driver_id': FirebaseAuth.instance.currentUser!.uid,
         'name': name,
@@ -215,6 +217,15 @@ class _RequestListPageState extends State<RequestListPage> {
     }).catchError((error) {
       print('Error rejecting request: $error');
       // Handle error, optionally show a snackbar or dialog
+    });
+  }
+
+  Future<DocumentReference> _createChatRoom(String customerId) async {
+    final currentUser = FirebaseAuth.instance.currentUser!;
+    return await FirebaseFirestore.instance.collection('chatRooms').add({
+      'participants': [currentUser.uid, customerId],
+      'lastMessage': '',
+      'timestamp': FieldValue.serverTimestamp(),
     });
   }
 }

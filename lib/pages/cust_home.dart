@@ -7,7 +7,7 @@ import 'package:google_places_for_flutter_3/google_places_for_flutter_3.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart' as polyline_points;
 import 'package:towbruh/message/chat_page.dart';
 import 'package:towbruh/message/message_page.dart';
 import 'package:towbruh/pages/profile_page.dart';
@@ -27,7 +27,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   bool _locationPermissionGranted = false;
   Set<Polyline> _polylines = {};
   Set<Marker> _markers = {};
-  late PolylinePoints _polylinePoints;
+  late polyline_points.PolylinePoints _polylinePoints;
   final String googleApiKey = 'AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ';
   String? _driverId;
   StreamSubscription<DocumentSnapshot>? _driverLocationSubscription;
@@ -48,7 +48,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void initState() {
     super.initState();
-    _polylinePoints = PolylinePoints();
+    _polylinePoints = polyline_points.PolylinePoints();
     _checkLocationPermission();
     _fetchUserRole();
     _loadNearbyWorkshops();
@@ -339,42 +339,39 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               infoWindow: const InfoWindow(title: 'Driver Location'),
             ),
           );
+
+          // Create polylines
+          _createPolylines(_currentPosition, driverLatLng);
         });
       }
     });
   }
 
-  Widget _buildDriverAcceptedInfo() {
-    if (_driverData == null) {
-      return SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(top: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 3,
-            blurRadius: 5,
-            offset: Offset(0, 3), // changes position of shadow
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Driver Accepted Your Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          SizedBox(height: 8),
-          Text('Name: ${_driverData!['name']}'),
-          Text('Phone: ${_driverData!['phone']}'),
-          Text('Number Plate: ${_driverData!['number_plate']}'),
-        ],
-      ),
+  Future<void> _createPolylines(LatLng start, LatLng destination) async {
+    polyline_points.PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
+      googleApiKey,
+      polyline_points.PointLatLng(start.latitude, start.longitude),
+      polyline_points.PointLatLng(destination.latitude, destination.longitude),
+      travelMode: polyline_points.TravelMode.driving,
     );
+
+    if (result.points.isNotEmpty) {
+      List<LatLng> polylineCoordinates = [];
+      result.points.forEach((polyline_points.PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+
+      setState(() {
+        _polylines.add(
+          Polyline(
+            polylineId: PolylineId('poly'),
+            color: Colors.blue,
+            points: polylineCoordinates,
+            width: 5,
+          ),
+        );
+      });
+    }
   }
 
   Future<void> _searchWorkshop() async {
@@ -412,6 +409,39 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
+  Widget _buildDriverAcceptedInfo() {
+    if (_driverData == null) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 3,
+            blurRadius: 5,
+            offset: Offset(0, 3), // changes position of shadow
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Driver Accepted Your Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text('Name: ${_driverData!['name']}'),
+          Text('Phone: ${_driverData!['phone']}'),
+          Text('Number Plate: ${_driverData!['number_plate']}'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -442,8 +472,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               child: Row(
                 children: [
                   Container(
-                    width: 70,
-                    height: 70,
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
@@ -457,8 +485,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                   ),
                   const SizedBox(width: 100),
                   Container(
-                    width: 70,
-                    height: 70,
                     decoration: BoxDecoration(
                       color: Colors.green,
                       shape: BoxShape.circle,

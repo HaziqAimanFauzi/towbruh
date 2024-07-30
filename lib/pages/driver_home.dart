@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart' as polyline_points;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -24,9 +25,11 @@ class _DriverHomePageState extends State<DriverHomePage> {
   bool _locationPermissionGranted = false;
   Set<Polyline> _polylines = {};
   Set<Marker> _markers = {};
-  late PolylinePoints _polylinePoints;
-  final String googleApiKey = 'YOUR_API_KEY';
-  late Stream<QuerySnapshot> _chats; // Stream for chat rooms
+  late polyline_points.PolylinePoints _polylinePoints;
+  final String googleApiKey = 'AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ';
+  late StreamSubscription<QuerySnapshot> _requestSubscription; // Corrected type
+  LatLng? _customerLocation;
+  String? _requestId;
 
   final List<Widget> _widgetOptionsDriver = [
     const Text('Home Page Content'),
@@ -37,9 +40,15 @@ class _DriverHomePageState extends State<DriverHomePage> {
   @override
   void initState() {
     super.initState();
-    _polylinePoints = PolylinePoints();
+    _polylinePoints = polyline_points.PolylinePoints();
     _checkLocationPermission();
-    _loadChatRooms(); // Initialize chat room stream
+    _startListeningToRequestUpdates();
+  }
+
+  @override
+  void dispose() {
+    _requestSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _checkLocationPermission() async {
@@ -89,11 +98,54 @@ class _DriverHomePageState extends State<DriverHomePage> {
     });
   }
 
-  void _loadChatRooms() {
-    _chats = FirebaseFirestore.instance
-        .collection('chatRooms')
-        .where('participants', arrayContains: FirebaseAuth.instance.currentUser!.uid)
-        .snapshots();
+  void _startListeningToRequestUpdates() {
+    _requestSubscription = FirebaseFirestore.instance
+        .collection('requests')
+        .where('driver_id', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+        .where('status', isEqualTo: 'accepted_by_driver')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final request = snapshot.docs.first;
+        final data = request.data() as Map<String, dynamic>;
+
+        setState(() {
+          _customerLocation = LatLng(
+            (data['location'] as GeoPoint).latitude,
+            (data['location'] as GeoPoint).longitude,
+          );
+          _requestId = request.id;
+          _createPolylines(_currentPosition, _customerLocation!);
+        });
+      }
+    });
+  }
+
+  Future<void> _createPolylines(LatLng start, LatLng destination) async {
+    polyline_points.PolylineResult result = await _polylinePoints.getRouteBetweenCoordinates(
+      googleApiKey,
+      polyline_points.PointLatLng(start.latitude, start.longitude),
+      polyline_points.PointLatLng(destination.latitude, destination.longitude),
+      travelMode: polyline_points.TravelMode.driving,
+    );
+
+    if (result.points.isNotEmpty) {
+      List<LatLng> polylineCoordinates = [];
+      result.points.forEach((polyline_points.PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+
+      setState(() {
+        _polylines.add(
+          Polyline(
+            polylineId: PolylineId('poly'),
+            color: Colors.blue,
+            points: polylineCoordinates,
+            width: 5,
+          ),
+        );
+      });
+    }
   }
 
   void _navigateToRequestList() {
@@ -114,16 +166,51 @@ class _DriverHomePageState extends State<DriverHomePage> {
       body: Center(
         child: _selectedIndex == 0
             ? _locationPermissionGranted
-            ? GoogleMap(
-          onMapCreated: _onMapCreated,
-          initialCameraPosition: CameraPosition(
-            target: _initialPosition,
-            zoom: 15.0,
-          ),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          markers: _markers,
-          polylines: _polylines,
+            ? Stack(
+          children: [
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _initialPosition,
+                zoom: 15.0,
+              ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              markers: _markers,
+              polylines: _polylines,
+            ),
+            if (_customerLocation != null)
+              Positioned(
+                top: 16,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(top: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 3,
+                        blurRadius: 5,
+                        offset: Offset(0, 3), // changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Customer Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('Latitude: ${_customerLocation!.latitude}'),
+                      Text('Longitude: ${_customerLocation!.longitude}'),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         )
             : const Text('Location permission not granted')
             : _widgetOptionsDriver.elementAt(_selectedIndex),
