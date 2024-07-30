@@ -42,6 +42,17 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  // Method to generate custom user ID
+  String generateUserID(String role) {
+    final now = DateTime.now();
+    final timestamp = now.microsecondsSinceEpoch.toString();
+    if (role == 'tow') {
+      return 'DRIVER_$timestamp';
+    } else {
+      return 'CUSTOMER_$timestamp';
+    }
+  }
+
   Future<void> signUp(BuildContext context) async {
     setState(() {
       _isLoading = true;
@@ -55,11 +66,15 @@ class _RegisterPageState extends State<RegisterPage> {
           password: _passwordController.text.trim(),
         );
 
+        // Generate custom user ID
+        String customUserID = generateUserID(_selectedRole);
+
         await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'phone': _phoneController.text.trim(),
           'role': _selectedRole,
+          'customUserID': customUserID, // Store custom user ID in Firestore
         });
 
         // Save FCM token after registration

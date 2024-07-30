@@ -37,7 +37,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Timer? _countdownTimer;
   int _countdown = 30;
   LatLng? _selectedWorkshopLocation; // Selected workshop location
-  final GoogleMapsPlaces _places = GoogleMapsPlaces(apiKey: 'AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ'); // Initialize Google Places API
+  late GoogleMapsPlaces _places; // Initialize Google Places API
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
@@ -48,6 +48,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void initState() {
     super.initState();
+    _places = GoogleMapsPlaces(apiKey: googleApiKey);
     _polylinePoints = polyline_points.PolylinePoints();
     _checkLocationPermission();
     _fetchUserRole();
@@ -477,7 +478,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      iconSize: 40,
                       icon: const Icon(Icons.search, color: Colors.white),
                       onPressed: _searchWorkshop,
                       tooltip: 'Search Workshop',
@@ -490,7 +490,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      iconSize: 40,
                       icon: const Icon(Icons.done, color: Colors.white),
                       onPressed: _requestDriver,
                       tooltip: 'Request Driver',

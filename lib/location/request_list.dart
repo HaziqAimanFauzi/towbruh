@@ -80,7 +80,7 @@ class _RequestListPageState extends State<RequestListPage> {
                               IconButton(
                                 icon: Icon(Icons.check),
                                 onPressed: () {
-                                  _handleAcceptRequest(request, customerData['name'], customerData['phone'], customerData['number_plate']);
+                                  _handleAcceptRequest(request, customerData);
                                 },
                               ),
                               IconButton(
@@ -91,6 +91,7 @@ class _RequestListPageState extends State<RequestListPage> {
                               ),
                             ],
                           ),
+                          onTap: () => _showCustomerDetails(customerData, data),
                         );
                       },
                     );
@@ -183,49 +184,72 @@ class _RequestListPageState extends State<RequestListPage> {
     );
   }
 
-  void _handleAcceptRequest(DocumentSnapshot request, String name, String phone, String numberPlate) async {
+  void _handleAcceptRequest(DocumentSnapshot request, Map<String, dynamic> customerData) async {
     final data = request.data() as Map<String, dynamic>;
-    final chatRoomRef = await _createChatRoom(data['customer_id']);
+    final driverId = FirebaseAuth.instance.currentUser!.uid;
 
-    FirebaseFirestore.instance.collection('requests').doc(request.id).update({
+    await FirebaseFirestore.instance.collection('requests').doc(request.id).update({
       'status': 'accepted_by_driver',
-      'driver_id': FirebaseAuth.instance.currentUser!.uid,
-      'chatRoomId': chatRoomRef.id, // Store chatRoomId in the request
-      'drivers': FieldValue.arrayUnion([{
-        'driver_id': FirebaseAuth.instance.currentUser!.uid,
-        'name': name,
-        'phone': phone,
-        'number_plate': numberPlate,
-      }])
-    }).then((_) {
-      // Notify the customer that the driver has accepted the request
-      FirebaseFirestore.instance.collection('notifications').add({
-        'customer_id': data['customer_id'],
-        'driver_id': FirebaseAuth.instance.currentUser!.uid,
-        'request_id': request.id,
-        'status': 'driver_accepted',
-      });
-    }).catchError((error) {
-      print('Error accepting request: $error');
-      // Handle error, optionally show a snackbar or dialog
+      'driver_id': driverId,
     });
+
+    // Notify the customer that the driver has accepted the request
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'customer_id': data['customer_id'],
+      'driver_id': driverId,
+      'request_id': request.id,
+      'status': 'driver_accepted',
+    });
+
+    _createChatRoom(data['customer_id'], driverId, customerData);
   }
 
-  void _handleRejectRequest(DocumentSnapshot request) {
-    FirebaseFirestore.instance.collection('requests').doc(request.id).update({
+  void _handleRejectRequest(DocumentSnapshot request) async {
+    await FirebaseFirestore.instance.collection('requests').doc(request.id).update({
       'status': 'rejected',
-    }).catchError((error) {
-      print('Error rejecting request: $error');
-      // Handle error, optionally show a snackbar or dialog
     });
   }
 
-  Future<DocumentReference> _createChatRoom(String customerId) async {
-    final currentUser = FirebaseAuth.instance.currentUser!;
-    return await FirebaseFirestore.instance.collection('chatRooms').add({
-      'participants': [currentUser.uid, customerId],
+  void _showCustomerDetails(Map<String, dynamic> customerData, Map<String, dynamic> requestData) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Customer Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: ${customerData['name']}'),
+            Text('Phone: ${customerData['phone']}'),
+            Text('Location: ${requestData['location'].latitude}, ${requestData['location'].longitude}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createChatRoom(String customerId, String driverId, Map<String, dynamic> customerData) async {
+    DocumentReference chatRoomRef = await FirebaseFirestore.instance.collection('chatRooms').add({
+      'participants': [customerId, driverId],
       'lastMessage': '',
       'timestamp': FieldValue.serverTimestamp(),
     });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPage(
+          chatRoomId: chatRoomRef.id,
+          user: customerData,
+          recipientId: customerId,
+        ),
+      ),
+    );
   }
 }
