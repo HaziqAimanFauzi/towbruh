@@ -46,9 +46,11 @@ dependencies:
   flutter_svg: ^2.0.10+1
   geolocator: ^12.0.0
   permission_handler: ^11.3.1
-  http: ^1.2.1
+  http: ^1.0.0
   geofence_service: ^6.0.0
   firebase_messaging: ^15.0.3
+  flutter_google_maps_webservices: ^1.1.1
+  google_places_for_flutter_3: ^1.0.4
 
 
 

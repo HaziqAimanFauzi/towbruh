@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_google_maps_webservices/places.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_places_for_flutter_3/google_places_for_flutter_3.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,13 +22,13 @@ class CustomerHomePage extends StatefulWidget {
 class _CustomerHomePageState extends State<CustomerHomePage> {
   int _selectedIndex = 0;
   late GoogleMapController _mapController;
-  LatLng _initialPosition = const LatLng(45.521563, -122.677433);
-  LatLng _currentPosition = const LatLng(45.521563, -122.677433);
+  LatLng _initialPosition = const LatLng(3.1390, 101.6869); // Default to Kuala Lumpur
+  LatLng _currentPosition = const LatLng(3.1390, 101.6869);
   bool _locationPermissionGranted = false;
   Set<Polyline> _polylines = {};
   Set<Marker> _markers = {};
   late PolylinePoints _polylinePoints;
-  final String googleApiKey = 'YOUR_API_KEY';
+  final String googleApiKey = 'AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ';
   String? _driverId;
   StreamSubscription<DocumentSnapshot>? _driverLocationSubscription;
   String? _userRole;
@@ -34,6 +36,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   String? _requestId; // Store request ID
   Timer? _countdownTimer;
   int _countdown = 30;
+  LatLng? _selectedWorkshopLocation; // Selected workshop location
+  final GoogleMapsPlaces _places = GoogleMapsPlaces(apiKey: 'AIzaSyAMR2JS44EhS0ktzAM4aWAl5zA93vjjiWQ'); // Initialize Google Places API
 
   final List<Widget> _widgetOptionsCustomer = [
     const Text('Home Page Content'),
@@ -47,6 +51,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     _polylinePoints = PolylinePoints();
     _checkLocationPermission();
     _fetchUserRole();
+    _loadNearbyWorkshops();
   }
 
   @override
@@ -63,7 +68,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     }
 
     if (status.isGranted) {
-      _locationPermissionGranted = true;
+      setState(() {
+        _locationPermissionGranted = true;
+      });
       _getCurrentLocation();
     } else {
       print("Location permission denied");
@@ -102,12 +109,37 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    _loadNearbyWorkshops(); // Load workshops when the map is created
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  Future<void> _loadNearbyWorkshops() async {
+    if (_locationPermissionGranted) {
+      final response = await _places.searchNearbyWithRadius(
+        Location(lat: _currentPosition.latitude, lng: _currentPosition.longitude),
+        50000,
+        type: 'car_repair', // Search for car repair workshops
+      );
+
+      if (response.status == 'OK') {
+        print('Workshops found: ${response.results.length}'); // Log number of workshops found
+        setState(() {
+          _markers.addAll(response.results.map((result) {
+            return Marker(
+              markerId: MarkerId(result.placeId),
+              position: LatLng(result.geometry!.location.lat, result.geometry!.location.lng),
+              infoWindow: InfoWindow(
+                title: result.name,
+                snippet: result.vicinity,
+              ),
+            );
+          }).toList());
+        });
+      } else {
+        print('Error loading nearby workshops: ${response.errorMessage}');
+      }
+    } else {
+      print('Location permission not granted');
+    }
   }
 
   Future<void> _requestDriver() async {
@@ -118,12 +150,23 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       return;
     }
 
+    if (_selectedWorkshopLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select a workshop first.')),
+      );
+      return;
+    }
+
     DocumentReference requestRef = await FirebaseFirestore.instance.collection('requests').add(
       {
         'customer_id': FirebaseAuth.instance.currentUser!.uid,
         'location': GeoPoint(
           _currentPosition.latitude,
           _currentPosition.longitude,
+        ),
+        'workshop_location': GeoPoint(
+          _selectedWorkshopLocation!.latitude,
+          _selectedWorkshopLocation!.longitude,
         ),
         'status': 'pending',
       },
@@ -334,6 +377,41 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
+  Future<void> _searchWorkshop() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Search Workshop'),
+        content: SearchGooglePlacesWidget(
+          apiKey: googleApiKey,
+          placeType: PlaceType.establishment,
+          placeholder: 'Enter workshop location',
+          language: 'en',
+          location: LatLng(_currentPosition.latitude, _currentPosition.longitude),
+          radius: 30000,
+          onSearch: (Place place) {},
+          onSelected: (Place place) async {
+            final geolocation = await place.geolocation;
+            setState(() {
+              _selectedWorkshopLocation = LatLng(geolocation!.coordinates.latitude, geolocation.coordinates.longitude);
+              _markers.add(
+                Marker(
+                  markerId: MarkerId(place.placeId!),
+                  position: _selectedWorkshopLocation!,
+                  infoWindow: InfoWindow(title: place.description),
+                ),
+              );
+            });
+            _mapController.animateCamera(
+              CameraUpdate.newLatLng(_selectedWorkshopLocation!),
+            );
+            Navigator.pop(context); // Close the dialog after selecting
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -373,11 +451,25 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                     child: IconButton(
                       iconSize: 40,
                       icon: const Icon(Icons.search, color: Colors.white),
+                      onPressed: _searchWorkshop,
+                      tooltip: 'Search Workshop',
+                    ),
+                  ),
+                  const SizedBox(width: 100),
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      iconSize: 40,
+                      icon: const Icon(Icons.done, color: Colors.white),
                       onPressed: _requestDriver,
                       tooltip: 'Request Driver',
                     ),
                   ),
-                  const SizedBox(width: 100),
                 ],
               ),
             ),
