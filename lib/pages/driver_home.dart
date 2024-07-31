@@ -30,6 +30,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
   late StreamSubscription<QuerySnapshot> _requestSubscription;
   LatLng? _customerLocation;
   String? _requestId;
+  double _distanceToCustomer = 0;
 
   final List<Widget> _widgetOptionsDriver = [
     const Text('Home Page Content'),
@@ -117,6 +118,8 @@ class _DriverHomePageState extends State<DriverHomePage> {
           );
           _requestId = request.id;
           _createPolylines(_currentPosition, _customerLocation!);
+          _addCustomerMarker(_customerLocation!);
+          _calculateDistance();
         });
       }
     });
@@ -149,6 +152,31 @@ class _DriverHomePageState extends State<DriverHomePage> {
     }
   }
 
+  void _addCustomerMarker(LatLng position) {
+    setState(() {
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('customerMarker'),
+          position: position,
+          infoWindow: const InfoWindow(title: 'Customer Location'),
+        ),
+      );
+    });
+  }
+
+  void _calculateDistance() {
+    if (_customerLocation != null) {
+      setState(() {
+        _distanceToCustomer = Geolocator.distanceBetween(
+          _currentPosition.latitude,
+          _currentPosition.longitude,
+          _customerLocation!.latitude,
+          _customerLocation!.longitude,
+        );
+      });
+    }
+  }
+
   void _navigateToRequestList() {
     Navigator.push(
       context,
@@ -169,9 +197,33 @@ class _DriverHomePageState extends State<DriverHomePage> {
         });
         setState(() {
           _currentPosition = LatLng(position.latitude, position.longitude);
+          _addDriverMarker();
+          _calculateDistance();
+          if (_distanceToCustomer <= 100) {
+            _notifyCustomerDriverArrival();
+          }
         });
       }
     });
+  }
+
+  void _notifyCustomerDriverArrival() {
+    if (_requestId != null && _customerLocation != null) {
+      FirebaseFirestore.instance.collection('requests').doc(_requestId).update({
+        'status': 'driver_arrived',
+      });
+
+      FirebaseFirestore.instance.collection('chatRooms').where('participants', arrayContains: FirebaseAuth.instance.currentUser!.uid).get().then((querySnapshot) {
+        if (querySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot chatRoom = querySnapshot.docs.first;
+          FirebaseFirestore.instance.collection('chatRooms').doc(chatRoom.id).collection('messages').add({
+            'sender': FirebaseAuth.instance.currentUser!.uid,
+            'message': 'The driver has arrived at your location.',
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -225,6 +277,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
                       SizedBox(height: 8),
                       Text('Latitude: ${_customerLocation!.latitude}'),
                       Text('Longitude: ${_customerLocation!.longitude}'),
+                      Text('Distance to Customer: ${(_distanceToCustomer / 1000).toStringAsFixed(2)} km'),
                     ],
                   ),
                 ),
